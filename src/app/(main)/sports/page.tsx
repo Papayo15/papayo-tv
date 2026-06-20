@@ -1,156 +1,217 @@
-import { createClient } from '@/lib/supabase/server'
+'use client'
+
+import { useState, useEffect } from 'react'
+import { createClient } from '@/lib/supabase/client'
 import { VideoPlayer } from '@/components/player/VideoPlayer'
-import { Trophy, Clock, Radio, Tv } from 'lucide-react'
+import { Trophy, Tv, Search, Volume2, VolumeX } from 'lucide-react'
+import { Input } from '@/components/ui/input'
+import { Skeleton } from '@/components/ui/skeleton'
 import Image from 'next/image'
-import type { SportsEvent } from '@/types/content'
 import type { Channel } from '@/types/channel'
 
-export const revalidate = 300
+// Network groups for filter tabs
+const NETWORKS = [
+  { id: 'all',        label: 'Todos',         pattern: null },
+  { id: 'espn',       label: 'ESPN',          pattern: 'espn' },
+  { id: 'fox',        label: 'Fox Sports',    pattern: 'fox sport' },
+  { id: 'sky',        label: 'Sky Sports',    pattern: 'sky sport' },
+  { id: 'bein',       label: 'beIN Sports',   pattern: 'bein' },
+  { id: 'eurosport',  label: 'Eurosport',     pattern: 'eurosport' },
+  { id: 'nbc',        label: 'NBC Sports',    pattern: 'nbc sport' },
+  { id: 'dazn',       label: 'DAZN',          pattern: 'dazn' },
+  { id: 'tyc',        label: 'TyC / DirecTV', pattern: 'tyc|directv sport|dsport|win sport' },
+  { id: 'movistar',   label: 'Movistar+',     pattern: 'movistar' },
+  { id: 'tudn',       label: 'TUDN',          pattern: 'tudn' },
+  { id: 'canal',      label: 'Canal+ Sport',  pattern: 'canal.*sport|sport.*canal' },
+  { id: 'supersport', label: 'SuperSport',    pattern: 'supersport' },
+  { id: 'bt',         label: 'TNT/BT Sport',  pattern: 'bt sport|tnt sport' },
+  { id: 'eleven',     label: 'Eleven Sports', pattern: 'eleven' },
+  { id: 'f1',         label: 'F1 / Moto',     pattern: 'formula|f1|moto|nascar|motorsport' },
+  { id: 'nfl',        label: 'NFL / NBA',     pattern: 'nfl|nba tv|nba net|mlb|nhl' },
+  { id: 'golf',       label: 'Golf / Tennis', pattern: 'golf|tennis' },
+]
 
-export default async function SportsPage() {
-  const supabase = await createClient()
+export default function SportsPage() {
+  const supabase = createClient()
+  const [channels, setChannels] = useState<Channel[]>([])
+  const [loading, setLoading] = useState(true)
+  const [selected, setSelected] = useState<Channel | null>(null)
+  const [audioOn, setAudioOn] = useState(false)
+  const [search, setSearch] = useState('')
+  const [network, setNetwork] = useState('all')
 
-  const [{ data: events }, { data: sportsChannels }] = await Promise.all([
-    supabase
-      .from('sports_events')
-      .select('*')
-      .order('is_live', { ascending: false })
-      .order('starts_at', { ascending: true }),
-    supabase
-      .from('channels')
-      .select('*')
-      .eq('is_active', true)
-      .or('category.eq.sports,name.ilike.%sport%,name.ilike.%ESPN%,name.ilike.%Fox Sport%,name.ilike.%deport%,name.ilike.%futbol%,name.ilike.%fútbol%,name.ilike.%beIN%,name.ilike.%Win Sport%,name.ilike.%DirecTV Sport%,name.ilike.%TyC%,name.ilike.%DSports%')
-      .order('name'),
-  ])
+  useEffect(() => {
+    async function load() {
+      setLoading(true)
+      // Wide query — grab all sports channels including name-based matches
+      const { data } = await supabase
+        .from('channels')
+        .select('*')
+        .eq('is_active', true)
+        .or([
+          'category.eq.sports',
+          'name.ilike.%ESPN%',
+          'name.ilike.%Fox Sport%',
+          'name.ilike.%Sky Sport%',
+          'name.ilike.%beIN%',
+          'name.ilike.%Eurosport%',
+          'name.ilike.%NBC Sport%',
+          'name.ilike.%DAZN%',
+          'name.ilike.%TyC%',
+          'name.ilike.%Win Sport%',
+          'name.ilike.%DSport%',
+          'name.ilike.%DirecTV Sport%',
+          'name.ilike.%Movistar%',
+          'name.ilike.%Canal+ Sport%',
+          'name.ilike.%TUDN%',
+          'name.ilike.%Supersport%',
+          'name.ilike.%BT Sport%',
+          'name.ilike.%TNT Sport%',
+          'name.ilike.%Eleven Sport%',
+          'name.ilike.%Stadium%',
+          'name.ilike.%Golf Channel%',
+          'name.ilike.%Tennis Channel%',
+          'name.ilike.%NFL Network%',
+          'name.ilike.%NBA TV%',
+          'name.ilike.%MLB Network%',
+          'name.ilike.%Motorsport%',
+          'name.ilike.%Formula 1%',
+          'name.ilike.%NASCAR%',
+          'name.ilike.%Claro Sport%',
+          'name.ilike.%Flow Sport%',
+          'name.ilike.%Teledeporte%',
+          'name.ilike.%Sport1%',
+          'name.ilike.%Polsat Sport%',
+          'name.ilike.%Arena Sport%',
+          'name.ilike.%Setanta%',
+          'name.ilike.%Sportsnet%',
+          'name.ilike.%deporte%',
+          'name.ilike.%futbol%',
+          'name.ilike.%fútbol%',
+        ].join(','))
+        .order('name')
+        .limit(1000)
+      setChannels(data || [])
+      setLoading(false)
+    }
+    load()
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
-  const live = (events || []).filter((e: SportsEvent) => e.is_live)
-  const upcoming = (events || []).filter((e: SportsEvent) => !e.is_live)
-  const channels = (sportsChannels || []) as Channel[]
-
-  const hasContent = live.length > 0 || upcoming.length > 0 || channels.length > 0
+  const activeNet = NETWORKS.find(n => n.id === network)
+  const filtered = channels.filter(ch => {
+    const n = ch.name.toLowerCase()
+    if (search && !n.includes(search.toLowerCase())) return false
+    if (!activeNet?.pattern) return true
+    return new RegExp(activeNet.pattern, 'i').test(ch.name)
+  })
 
   return (
-    <div className="space-y-8">
-      <h1 className="text-white font-bold text-xl flex items-center gap-2">
-        <Trophy className="h-5 w-5 text-yellow-400" />
-        Deportes
-      </h1>
+    <div className="space-y-4">
+      <div className="flex items-center justify-between">
+        <h1 className="text-white font-bold text-xl flex items-center gap-2">
+          <Trophy className="h-5 w-5 text-yellow-400" />
+          Deportes
+        </h1>
+        {!loading && (
+          <span className="text-zinc-500 text-sm">{channels.length} canales disponibles</span>
+        )}
+      </div>
 
-      {!hasContent && (
+      {/* Player */}
+      {selected && (
+        <div className="rounded-xl overflow-hidden border border-zinc-800 bg-zinc-950">
+          <div className="px-4 py-2 border-b border-zinc-800 flex items-center gap-2">
+            <div className="h-2 w-2 rounded-full bg-red-500 animate-pulse" />
+            <span className="text-white text-sm font-medium">{selected.name}</span>
+            <button
+              onClick={() => setAudioOn(v => !v)}
+              className="ml-auto flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg bg-zinc-800 hover:bg-zinc-700 transition-colors"
+            >
+              {audioOn
+                ? <><Volume2 className="h-3.5 w-3.5 text-green-400" /><span className="text-green-400">Con audio</span></>
+                : <><VolumeX className="h-3.5 w-3.5 text-zinc-400" /><span className="text-zinc-400">Sin audio</span></>}
+            </button>
+          </div>
+          <VideoPlayer src={selected.url} title={selected.name} className="aspect-video" muted={!audioOn} />
+        </div>
+      )}
+
+      {/* Search */}
+      <div className="relative">
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-500" />
+        <Input
+          placeholder="Buscar canal deportivo..."
+          value={search}
+          onChange={e => setSearch(e.target.value)}
+          className="pl-9 bg-zinc-900 border-zinc-800 text-white"
+        />
+      </div>
+
+      {/* Network filter tabs */}
+      <div className="flex flex-wrap gap-1.5">
+        {NETWORKS.map(n => (
+          <button
+            key={n.id}
+            onClick={() => setNetwork(n.id)}
+            className={`text-xs px-3 py-1.5 rounded-full font-medium transition-colors ${
+              network === n.id
+                ? 'bg-red-600 text-white'
+                : 'bg-zinc-800 text-zinc-400 hover:bg-zinc-700 hover:text-white'
+            }`}
+          >
+            {n.label}
+          </button>
+        ))}
+      </div>
+
+      {loading ? (
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
+          {Array.from({ length: 20 }).map((_, i) => (
+            <Skeleton key={i} className="h-24 rounded-xl bg-zinc-800" />
+          ))}
+        </div>
+      ) : filtered.length === 0 ? (
         <div className="text-center py-20">
           <Trophy className="h-12 w-12 text-zinc-700 mx-auto mb-4" />
-          <p className="text-zinc-400 font-medium">No hay contenido deportivo disponible</p>
-          <p className="text-zinc-600 text-sm mt-1">Sincroniza los canales desde el panel de administración</p>
-        </div>
-      )}
-
-      {live.length > 0 && (
-        <section>
-          <h2 className="text-white font-bold text-lg mb-4 flex items-center gap-2">
-            <Radio className="h-4 w-4 text-red-500 animate-pulse" />
-            En Vivo Ahora
-          </h2>
-          <div className="grid gap-4">
-            {live.map((event: SportsEvent) => (
-              <EventCard key={event.id} event={event} isLive />
-            ))}
-          </div>
-        </section>
-      )}
-
-      {upcoming.length > 0 && (
-        <section>
-          <h2 className="text-white font-bold text-lg mb-4 flex items-center gap-2">
-            <Clock className="h-4 w-4 text-blue-400" />
-            Próximos Partidos
-          </h2>
-          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            {upcoming.map((event: SportsEvent) => (
-              <EventCard key={event.id} event={event} isLive={false} />
-            ))}
-          </div>
-        </section>
-      )}
-
-      {channels.length > 0 && (
-        <section>
-          <h2 className="text-white font-bold text-lg mb-4 flex items-center gap-2">
-            <Tv className="h-4 w-4 text-green-400" />
-            Canales Deportivos ({channels.length})
-          </h2>
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
-            {channels.map((channel) => (
-              <ChannelCard key={channel.id} channel={channel} />
-            ))}
-          </div>
-        </section>
-      )}
-    </div>
-  )
-}
-
-function ChannelCard({ channel }: { channel: Channel }) {
-  return (
-    <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-3 flex flex-col gap-2 hover:border-zinc-600 transition-colors">
-      <div className="flex items-center gap-2">
-        {channel.logo ? (
-          <div className="w-8 h-8 relative shrink-0">
-            <Image src={channel.logo} alt={channel.name} fill className="object-contain" sizes="32px" />
-          </div>
-        ) : (
-          <Tv className="h-5 w-5 text-zinc-500 shrink-0" />
-        )}
-        <p className="text-white text-xs font-medium line-clamp-2 leading-tight">{channel.name}</p>
-      </div>
-      <VideoPlayer
-        src={channel.url}
-        title={channel.name}
-        className="aspect-video w-full rounded-lg"
-      />
-    </div>
-  )
-}
-
-function EventCard({ event, isLive }: { event: SportsEvent; isLive: boolean }) {
-  const startsAt = event.starts_at ? new Date(event.starts_at) : null
-  const timeStr = startsAt
-    ? startsAt.toLocaleString('es-MX', { weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })
-    : null
-
-  return (
-    <div className={`bg-zinc-900 border rounded-xl overflow-hidden ${isLive ? 'border-red-600/50' : 'border-zinc-800'}`}>
-      {event.poster_url && (
-        <div className="relative aspect-video bg-zinc-800">
-          <Image src={event.poster_url} alt={event.name} fill className="object-cover opacity-70" sizes="(max-width: 640px) 100vw, 50vw" />
-          <div className="absolute inset-0 bg-gradient-to-t from-zinc-900 via-transparent" />
-        </div>
-      )}
-      <div className="p-4 space-y-3">
-        <div className="flex items-start justify-between gap-2">
-          <div>
-            <p className="text-zinc-500 text-xs">{event.league} · {event.sport}</p>
-            <h3 className="text-white font-semibold text-sm mt-0.5">{event.name}</h3>
-            {event.home_team && event.away_team && (
-              <p className="text-zinc-400 text-xs mt-1">{event.home_team} vs {event.away_team}</p>
-            )}
-          </div>
-          {isLive && (
-            <span className="shrink-0 text-xs bg-red-600 text-white px-2 py-0.5 rounded-full font-medium animate-pulse">
-              EN VIVO
-            </span>
-          )}
-        </div>
-        {timeStr && (
-          <p className="text-zinc-500 text-xs flex items-center gap-1">
-            <Clock className="h-3 w-3" />
-            {timeStr}
+          <p className="text-zinc-400">
+            {channels.length === 0
+              ? 'Sin canales de deportes. Ve a Admin → Sincronizar canales.'
+              : `Sin resultados para "${search || network}"`}
           </p>
-        )}
-        {isLive && event.channel_url && (
-          <VideoPlayer src={event.channel_url} title={event.name} className="aspect-video w-full rounded-lg" />
-        )}
-      </div>
+        </div>
+      ) : (
+        <>
+          <p className="text-zinc-600 text-xs">{filtered.length} canales</p>
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3">
+            {filtered.map(ch => (
+              <button
+                key={ch.id}
+                onClick={() => { setSelected(ch); setAudioOn(false) }}
+                className={`flex flex-col items-center gap-2 p-3 rounded-xl border transition-all text-center ${
+                  selected?.id === ch.id
+                    ? 'border-red-500 bg-red-950/30'
+                    : 'border-zinc-800 bg-zinc-900 hover:border-zinc-600 hover:bg-zinc-800'
+                }`}
+              >
+                {ch.logo ? (
+                  <div className="h-10 w-full flex items-center justify-center">
+                    <Image
+                      src={ch.logo} alt={ch.name}
+                      width={60} height={40}
+                      className="object-contain max-h-10 w-auto"
+                      onError={e => { (e.target as HTMLImageElement).style.display = 'none' }}
+                    />
+                  </div>
+                ) : (
+                  <Tv className="h-9 w-9 text-zinc-600" />
+                )}
+                <p className="text-zinc-300 text-[11px] font-medium leading-tight line-clamp-2">{ch.name}</p>
+                <span className="text-[9px] text-zinc-600 uppercase">{ch.country}</span>
+              </button>
+            ))}
+          </div>
+        </>
+      )}
     </div>
   )
 }

@@ -61,14 +61,25 @@ export default function AdminChannelsPage() {
         await new Promise(r => setTimeout(r, 1500))
       }
     }
-    setSyncResult(`✅ Canales listos — ${total} de ${COUNTRIES.length} países. Detectando eventos deportivos...`)
-    // Auto-sync events after channels are ready
+    setSyncResult(`✅ Países listos (${total} canales). Sincronizando deportes globales — ESPN, Fox, Sky...`)
+    // Deep sports sync from iptv-org API
+    try {
+      const sr = await fetch('/api/sync-sports', { method: 'POST' })
+      const sd = await sr.json()
+      total += sd.inserted || 0
+      setSyncResult(`✅ Deportes: ${sd.inserted || 0} canales. Recategorizando...`)
+    } catch { /* continue */ }
+    // Fix mis-categorized channels
+    try {
+      const rr = await fetch('/api/recategorize', { method: 'POST' })
+      const rd = await rr.json()
+      setSyncResult(`✅ Recategorizados ${rd.fixed || 0}. Detectando eventos...`)
+    } catch { /* continue */ }
+    // Auto-detect events
     try {
       await fetch('/api/sync-events', { method: 'POST' })
-      setSyncResult(`✅ Listo — ${total} canales + eventos deportivos actualizados`)
-    } catch {
-      setSyncResult(`✅ Listo — ${total} canales (eventos: no disponibles)`)
-    }
+    } catch { /* continue */ }
+    setSyncResult(`✅ Sincronización completa — ${total} canales totales`)
     setSyncing(false)
     await loadChannels()
   }
