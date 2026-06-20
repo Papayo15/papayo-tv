@@ -7,6 +7,7 @@ import {
   Film,
   Clapperboard,
   Trophy,
+  Star,
   Search,
   Heart,
   Settings,
@@ -24,6 +25,7 @@ const navItems = [
   { href: '/movies', label: 'Películas', icon: Film },
   { href: '/series', label: 'Series', icon: Clapperboard },
   { href: '/sports', label: 'Deportes', icon: Trophy },
+  { href: '/events', label: 'Eventos', icon: Star },
   { href: '/search', label: 'Buscar', icon: Search },
   { href: '/favorites', label: 'Favoritos', icon: Heart },
 ]

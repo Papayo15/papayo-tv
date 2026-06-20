@@ -35,15 +35,15 @@ async function run() {
   // Sync EPG
   let epgTotal = 0
   try {
-    const res = await fetch(`${BASE_URL}/api/sync-epg`, {
-      method: 'POST',
-      signal: AbortSignal.timeout(40000),
-    })
+    const res = await fetch(`${BASE_URL}/api/sync-epg`, { method: 'POST', signal: AbortSignal.timeout(40000) })
     const data = await res.json()
     epgTotal = data.inserted || 0
-  } catch {
-    // EPG not critical
-  }
+  } catch { /* not critical */ }
+
+  // Auto-sync events (creates/updates event sections from channels)
+  try {
+    await fetch(`${BASE_URL}/api/sync-events`, { method: 'POST', signal: AbortSignal.timeout(30000) })
+  } catch { /* not critical */ }
 
   return NextResponse.json({
     success: true,
