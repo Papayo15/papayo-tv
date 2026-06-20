@@ -1,8 +1,8 @@
 'use client'
 
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState, useCallback } from 'react'
 import Hls from 'hls.js'
-import { WifiOff, RefreshCw, Maximize2 } from 'lucide-react'
+import { WifiOff, RefreshCw, Maximize2, Shield } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 interface VideoPlayerProps {
@@ -14,72 +14,72 @@ interface VideoPlayerProps {
   onPlay?: () => void
 }
 
-type PlayerState = 'loading' | 'playing' | 'error' | 'cors-blocked'
+type PlayerState = 'loading' | 'playing' | 'error' | 'blocked'
+
+function proxyUrl(src: string) {
+  return `/api/proxy/stream?url=${encodeURIComponent(src)}`
+}
 
 export function VideoPlayer({ src, title, className, autoplay = true, onError, onPlay }: VideoPlayerProps) {
   const videoRef = useRef<HTMLVideoElement>(null)
   const hlsRef = useRef<Hls | null>(null)
   const [state, setState] = useState<PlayerState>('loading')
+  const [usingProxy, setUsingProxy] = useState(false)
   const errorTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
 
-  useEffect(() => {
+  const loadSrc = useCallback((streamUrl: string) => {
     const video = videoRef.current
-    if (!video || !src) return
+    if (!video) return
 
     setState('loading')
-
-    // Clear error timer
     if (errorTimer.current) clearTimeout(errorTimer.current)
 
-    // Mark as error if nothing plays in 8 seconds
-    errorTimer.current = setTimeout(() => {
-      if (state === 'loading') setState('error')
-    }, 8000)
+    hlsRef.current?.destroy()
+    hlsRef.current = null
 
-    function cleanup() {
-      hlsRef.current?.destroy()
-      hlsRef.current = null
-      if (errorTimer.current) clearTimeout(errorTimer.current)
-    }
+    errorTimer.current = setTimeout(() => setState('error'), 12000)
 
-    cleanup()
-
-    const isHLS = src.includes('.m3u8') || src.includes('m3u8')
+    const isHLS = /\.m3u8|m3u8/i.test(streamUrl) || streamUrl.includes('/api/proxy/')
 
     if (isHLS && Hls.isSupported()) {
       const hls = new Hls({
         enableWorker: false,
         lowLatencyMode: true,
-        fragLoadingTimeOut: 10000,
-        manifestLoadingTimeOut: 10000,
+        fragLoadingTimeOut: 15000,
+        manifestLoadingTimeOut: 15000,
+        xhrSetup: (xhr) => {
+          xhr.setRequestHeader('Cache-Control', 'no-cache')
+        },
       })
       hlsRef.current = hls
 
       hls.on(Hls.Events.ERROR, (_, data) => {
         if (data.fatal) {
-          if (data.type === Hls.ErrorTypes.NETWORK_ERROR) {
-            setState('cors-blocked')
+          if (!usingProxy && data.type === Hls.ErrorTypes.NETWORK_ERROR) {
+            // Auto-retry via server proxy (bypasses CORS / geo-block)
+            setState('loading')
+            setUsingProxy(true)
+            hls.destroy()
+            loadSrc(proxyUrl(src))
           } else {
-            setState('error')
+            setState(data.type === Hls.ErrorTypes.NETWORK_ERROR ? 'blocked' : 'error')
+            onError?.()
           }
-          onError?.()
         }
       })
 
       hls.on(Hls.Events.MANIFEST_PARSED, () => {
-        if (autoplay) video.play().catch(() => setState('error'))
+        if (autoplay) video.play().catch(() => {})
       })
 
-      hls.loadSource(src)
+      hls.loadSource(streamUrl)
       hls.attachMedia(video)
     } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
-      // Native HLS (Safari)
-      video.src = src
-      if (autoplay) video.play().catch(() => setState('error'))
+      video.src = streamUrl
+      if (autoplay) video.play().catch(() => {})
     } else {
-      // Direct MP4 or other
-      video.src = src
-      if (autoplay) video.play().catch(() => setState('error'))
+      video.src = streamUrl
+      if (autoplay) video.play().catch(() => {})
     }
 
     video.onplaying = () => {
@@ -89,20 +89,34 @@ export function VideoPlayer({ src, title, className, autoplay = true, onError, o
     }
 
     video.onerror = () => {
-      setState('error')
-      onError?.()
+      if (!usingProxy) {
+        setUsingProxy(true)
+        loadSrc(proxyUrl(src))
+      } else {
+        setState('error')
+        onError?.()
+      }
     }
+  }, [src, usingProxy, autoplay, onError, onPlay]) // eslint-disable-line react-hooks/exhaustive-deps
 
-    return cleanup
+  useEffect(() => {
+    setUsingProxy(false)
+    loadSrc(src)
+    return () => {
+      hlsRef.current?.destroy()
+      hlsRef.current = null
+      if (errorTimer.current) clearTimeout(errorTimer.current)
+    }
   }, [src]) // eslint-disable-line react-hooks/exhaustive-deps
 
   function handleRetry() {
-    setState('loading')
-    const video = videoRef.current
-    if (video) {
-      video.load()
-      video.play().catch(() => setState('error'))
-    }
+    setUsingProxy(false)
+    loadSrc(src)
+  }
+
+  function handleForceProxy() {
+    setUsingProxy(true)
+    loadSrc(proxyUrl(src))
   }
 
   function handleFullscreen() {
@@ -118,46 +132,64 @@ export function VideoPlayer({ src, title, className, autoplay = true, onError, o
         controls={state === 'playing'}
       />
 
-      {/* Loading */}
       {state === 'loading' && (
         <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 bg-zinc-950">
           <div className="h-8 w-8 border-2 border-red-500 border-t-transparent rounded-full animate-spin" />
-          <p className="text-zinc-400 text-sm">Cargando señal{title ? ` — ${title}` : ''}...</p>
+          <p className="text-zinc-400 text-sm">
+            {usingProxy ? 'Conectando via proxy...' : `Cargando señal${title ? ` — ${title}` : ''}...`}
+          </p>
         </div>
       )}
 
-      {/* Error / CORS blocked */}
-      {(state === 'error' || state === 'cors-blocked') && (
+      {state === 'blocked' && (
+        <div className="absolute inset-0 flex flex-col items-center justify-center gap-4 bg-zinc-950 p-4">
+          <Shield className="h-10 w-10 text-orange-500" />
+          <div className="text-center">
+            <p className="text-white font-medium text-sm">Canal con restricción geográfica</p>
+            <p className="text-zinc-500 text-xs mt-1">Este canal limita el acceso por país</p>
+          </div>
+          <div className="flex gap-2">
+            <button onClick={handleRetry} className="flex items-center gap-2 bg-zinc-800 hover:bg-zinc-700 text-white text-sm px-3 py-2 rounded-lg transition-colors">
+              <RefreshCw className="h-3.5 w-3.5" />
+              Reintentar
+            </button>
+            <button onClick={handleForceProxy} className="flex items-center gap-2 bg-red-700 hover:bg-red-600 text-white text-sm px-3 py-2 rounded-lg transition-colors">
+              <Shield className="h-3.5 w-3.5" />
+              Forzar proxy
+            </button>
+          </div>
+        </div>
+      )}
+
+      {state === 'error' && (
         <div className="absolute inset-0 flex flex-col items-center justify-center gap-4 bg-zinc-950 p-4">
           <WifiOff className="h-10 w-10 text-zinc-600" />
           <div className="text-center">
-            <p className="text-white font-medium text-sm">
-              {state === 'cors-blocked' ? 'Señal no disponible' : 'Error de reproducción'}
-            </p>
-            <p className="text-zinc-500 text-xs mt-1">
-              {state === 'cors-blocked'
-                ? 'Este canal no permite reproducción desde el navegador'
-                : 'No se pudo conectar a la señal'}
-            </p>
+            <p className="text-white font-medium text-sm">Señal no disponible</p>
+            <p className="text-zinc-500 text-xs mt-1">El canal puede estar fuera de aire</p>
           </div>
-          <button
-            onClick={handleRetry}
-            className="flex items-center gap-2 bg-zinc-800 hover:bg-zinc-700 text-white text-sm px-4 py-2 rounded-lg transition-colors"
-          >
+          <button onClick={handleRetry} className="flex items-center gap-2 bg-zinc-800 hover:bg-zinc-700 text-white text-sm px-4 py-2 rounded-lg transition-colors">
             <RefreshCw className="h-3.5 w-3.5" />
             Reintentar
           </button>
         </div>
       )}
 
-      {/* Fullscreen button overlay */}
       {state === 'playing' && (
-        <button
-          onClick={handleFullscreen}
-          className="absolute top-2 right-2 bg-black/50 hover:bg-black/80 text-white p-1.5 rounded opacity-0 group-hover:opacity-100 transition-opacity"
-        >
-          <Maximize2 className="h-3.5 w-3.5" />
-        </button>
+        <>
+          {usingProxy && (
+            <div className="absolute top-2 left-2 flex items-center gap-1 bg-black/60 text-orange-400 text-xs px-2 py-1 rounded-full">
+              <Shield className="h-3 w-3" />
+              proxy
+            </div>
+          )}
+          <button
+            onClick={handleFullscreen}
+            className="absolute top-2 right-2 bg-black/50 hover:bg-black/80 text-white p-1.5 rounded opacity-0 group-hover:opacity-100 transition-opacity"
+          >
+            <Maximize2 className="h-3.5 w-3.5" />
+          </button>
+        </>
       )}
     </div>
   )
