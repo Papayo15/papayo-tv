@@ -3,6 +3,22 @@
     {
       "path": "/api/sync-all",
       "schedule": "0 4 * * *"
+    },
+    {
+      "path": "/api/sync-playlists",
+      "schedule": "30 4 * * *"
+    },
+    {
+      "path": "/api/sync-sports",
+      "schedule": "0 5 * * *"
+    },
+    {
+      "path": "/api/recategorize",
+      "schedule": "30 5 * * *"
+    },
+    {
+      "path": "/api/sync-events",
+      "schedule": "0 6 * * *"
     }
   ]
 }
