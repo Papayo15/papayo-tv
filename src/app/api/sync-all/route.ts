@@ -1,63 +1,41 @@
 import { NextResponse } from 'next/server'
+import { ALL_COUNTRIES, loadChannelsMeta, syncCountry } from '@/lib/sync/channels'
 
-// All countries to sync — grouped so we can do them in parallel batches
-const COUNTRY_BATCHES = [
-  // LatAm batch 1
+// Countries in batches — each batch runs in parallel, batches are sequential
+const BATCHES = [
   ['mx', 'ar', 'co', 'cl', 'br', 'pe'],
-  // LatAm batch 2
-  ['ve', 'ec', 'bo', 'py', 'uy', 'cr', 'pa', 'gt'],
-  // LatAm batch 3
-  ['hn', 'sv', 'do', 'cu', 'pr'],
-  // Europe batch 1
+  ['ve', 'ec', 'bo', 'py', 'uy', 'cr', 'do', 'pr'],
   ['es', 'pt', 'gb', 'it', 'fr', 'de'],
-  // Europe batch 2
-  ['nl', 'be', 'ch', 'at', 'pl', 'ro', 'tr', 'se'],
-  // Others
+  ['nl', 'be', 'at', 'se', 'no', 'dk'],
   ['us', 'ca', 'au', 'int'],
 ]
-
-const BASE_URL = process.env.VERCEL_URL
-  ? `https://${process.env.VERCEL_URL}`
-  : process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'
 
 export async function GET() { return run() }
 export async function POST() { return run() }
 
-async function syncCountry(country: string): Promise<number> {
-  try {
-    const res = await fetch(`${BASE_URL}/api/sync`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ country }),
-      signal: AbortSignal.timeout(35000),
-    })
-    const data = await res.json()
-    return data.inserted || 0
-  } catch {
-    return 0
-  }
-}
-
 async function run() {
-  let channelsTotal = 0
+  // Load metadata once — shared across all country syncs
+  const meta = await loadChannelsMeta()
 
-  // Sync countries in parallel batches (each batch runs in parallel, batches are sequential)
-  for (const batch of COUNTRY_BATCHES) {
-    const results = await Promise.all(batch.map(syncCountry))
+  let channelsTotal = 0
+  for (const batch of BATCHES) {
+    const results = await Promise.all(
+      batch.filter(c => ALL_COUNTRIES.includes(c)).map(c => syncCountry(c, meta))
+    )
     channelsTotal += results.reduce((a, b) => a + b, 0)
   }
 
-  // Sync EPG
+  // Sync EPG (best effort)
   let epgTotal = 0
   try {
-    const res = await fetch(`${BASE_URL}/api/sync-epg`, { method: 'POST', signal: AbortSignal.timeout(40000) })
-    const data = await res.json()
-    epgTotal = data.inserted || 0
+    const { syncEpg } = await import('@/lib/sync/epg')
+    epgTotal = await syncEpg()
   } catch { /* not critical */ }
 
-  // Auto-sync events
+  // Auto-sync events (best effort)
   try {
-    await fetch(`${BASE_URL}/api/sync-events`, { method: 'POST', signal: AbortSignal.timeout(40000) })
+    const { syncEvents } = await import('@/lib/sync/events')
+    await syncEvents()
   } catch { /* not critical */ }
 
   return NextResponse.json({
