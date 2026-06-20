@@ -2,6 +2,7 @@ export interface Channel {
   id: string
   name: string
   url: string
+  tvg_id?: string
   logo?: string
   country: string
   category: string

@@ -43,20 +43,21 @@ function normalizeCategory(cats: string[]): string {
 
 function parseM3U(text: string, defaultCountry: string, meta: Map<string, ChannelMeta>) {
   const lines = text.split('\n').map(l => l.trim()).filter(Boolean)
-  const channels: Array<{ name: string; url: string; logo: string | null; country: string; category: string }> = []
-  let current: { name: string; channelId: string } | null = null
+  const channels: Array<{ name: string; url: string; tvg_id: string; logo: string | null; country: string; category: string }> = []
+  let current: { name: string; channelId: string; rawTvgId: string } | null = null
 
   for (const line of lines) {
     if (line.startsWith('#EXTINF:')) {
       const name = line.match(/,(.+)$/)?.[1]?.trim() || 'Sin nombre'
       const tvgId = line.match(/tvg-id="([^"]*)"/)?.[1] || ''
       const channelId = tvgId.split('@')[0].toLowerCase()
-      current = { name, channelId }
+      current = { name, channelId, rawTvgId: tvgId }
     } else if (line.startsWith('http') && current) {
       const info = meta.get(current.channelId)
       channels.push({
         name: current.name,
         url: line,
+        tvg_id: current.channelId,
         logo: info?.logo || null,
         country: info?.country || defaultCountry,
         category: normalizeCategory(info?.categories || []),
@@ -93,6 +94,7 @@ export async function POST(req: Request) {
     const batch = channels.slice(i, i + 100).map(c => ({
       name: c.name,
       url: c.url,
+      tvg_id: c.tvg_id,
       logo: c.logo,
       country: c.country,
       category: c.category,

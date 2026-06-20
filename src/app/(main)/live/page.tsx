@@ -2,13 +2,13 @@
 
 import { useEffect, useState, useCallback } from 'react'
 import { createClient } from '@/lib/supabase/client'
-import { ChannelCard } from '@/components/channel/ChannelCard'
+import { ChannelCard, type EpgProgram } from '@/components/channel/ChannelCard'
 import { VideoPlayer } from '@/components/player/VideoPlayer'
 import { Input } from '@/components/ui/input'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Skeleton } from '@/components/ui/skeleton'
 import type { Channel, ChannelStatus } from '@/types/channel'
-import { Search, Tv } from 'lucide-react'
+import { Search, Tv, CalendarDays } from 'lucide-react'
 
 const COUNTRIES = [
   { code: 'all', label: 'Todos' },
@@ -36,6 +36,7 @@ export default function LivePage() {
   const [loading, setLoading] = useState(true)
   const [selected, setSelected] = useState<Channel | null>(null)
   const [channelStatuses, setChannelStatuses] = useState<Record<string, ChannelStatus>>({})
+  const [epgData, setEpgData] = useState<Record<string, EpgProgram>>({})
   const [search, setSearch] = useState('')
   const [country, setCountry] = useState('all')
   const [category, setCategory] = useState('all')
@@ -45,13 +46,27 @@ export default function LivePage() {
     async function load() {
       setLoading(true)
       let query = supabase.from('channels').select('*').eq('is_active', true).order('name')
-
       if (country !== 'all') query = query.eq('country', country)
       if (category !== 'all') query = query.eq('category', category)
-
       const { data } = await query.limit(500)
-      setChannels(data || [])
+      const loaded = data || []
+      setChannels(loaded)
       setLoading(false)
+
+      // Load EPG for visible channels that have a tvg_id
+      const tvgIds = loaded
+        .map((c: Channel & { tvg_id?: string }) => c.tvg_id)
+        .filter(Boolean)
+        .slice(0, 100)
+
+      if (tvgIds.length > 0) {
+        try {
+          const res = await fetch(`/api/epg?ids=${tvgIds.join(',')}`)
+          if (res.ok) setEpgData(await res.json())
+        } catch {
+          // EPG not critical
+        }
+      }
     }
     load()
   }, [country, category]) // eslint-disable-line react-hooks/exhaustive-deps
@@ -72,9 +87,13 @@ export default function LivePage() {
     return true
   })
 
+  const selectedEpg = selected
+    ? epgData[(selected as Channel & { tvg_id?: string }).tvg_id || '']
+    : undefined
+
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between flex-wrap gap-2">
         <h1 className="text-white font-bold text-xl flex items-center gap-2">
           <Tv className="h-5 w-5 text-red-500" />
           TV en Vivo
@@ -96,6 +115,12 @@ export default function LivePage() {
           <div className="px-4 py-2 border-b border-zinc-800 flex items-center gap-2">
             <div className="h-2 w-2 rounded-full bg-red-500 animate-pulse" />
             <span className="text-white text-sm font-medium">{selected.name}</span>
+            {selectedEpg && (
+              <span className="ml-2 text-zinc-400 text-xs flex items-center gap-1">
+                <CalendarDays className="h-3 w-3" />
+                {selectedEpg.title}
+              </span>
+            )}
           </div>
           <VideoPlayer
             src={selected.url}
@@ -104,6 +129,30 @@ export default function LivePage() {
             onError={() => handleChannelError(selected.id)}
             onPlay={() => handleChannelPlay(selected.id)}
           />
+          {selectedEpg && (
+            <div className="px-4 py-3 border-t border-zinc-800 space-y-1">
+              <div className="flex items-center justify-between text-xs text-zinc-500">
+                <span className="text-zinc-300 font-medium">{selectedEpg.title}</span>
+                <span>
+                  {new Date(selectedEpg.start_time).toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' })}
+                  {' – '}
+                  {new Date(selectedEpg.end_time).toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' })}
+                </span>
+              </div>
+              {selectedEpg.description && (
+                <p className="text-zinc-500 text-xs line-clamp-2">{selectedEpg.description}</p>
+              )}
+              {/* Progress bar */}
+              <div className="w-full h-1 bg-zinc-800 rounded-full mt-2">
+                <div
+                  className="h-full bg-red-500 rounded-full transition-all"
+                  style={{
+                    width: `${Math.min(100, Math.max(0, ((Date.now() - new Date(selectedEpg.start_time).getTime()) / (new Date(selectedEpg.end_time).getTime() - new Date(selectedEpg.start_time).getTime())) * 100))}%`
+                  }}
+                />
+              </div>
+            </div>
+          )}
         </div>
       )}
 
@@ -144,7 +193,7 @@ export default function LivePage() {
       {loading ? (
         <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-3">
           {Array.from({ length: 24 }).map((_, i) => (
-            <Skeleton key={i} className="h-24 rounded-xl bg-zinc-800" />
+            <Skeleton key={i} className="h-28 rounded-xl bg-zinc-800" />
           ))}
         </div>
       ) : filtered.length === 0 ? (
@@ -161,15 +210,19 @@ export default function LivePage() {
         <>
           <p className="text-zinc-500 text-xs">{filtered.length} canales disponibles</p>
           <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-3">
-            {filtered.map(channel => (
-              <ChannelCard
-                key={channel.id}
-                channel={channel}
-                status={channelStatuses[channel.id]}
-                isSelected={selected?.id === channel.id}
-                onClick={() => setSelected(channel)}
-              />
-            ))}
+            {filtered.map(channel => {
+              const ch = channel as Channel & { tvg_id?: string }
+              return (
+                <ChannelCard
+                  key={channel.id}
+                  channel={channel}
+                  status={channelStatuses[channel.id]}
+                  isSelected={selected?.id === channel.id}
+                  currentProgram={ch.tvg_id ? epgData[ch.tvg_id] : undefined}
+                  onClick={() => setSelected(channel)}
+                />
+              )
+            })}
           </div>
         </>
       )}

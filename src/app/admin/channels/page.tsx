@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
 import { Skeleton } from '@/components/ui/skeleton'
-import { Tv, RefreshCw, Search, Eye, EyeOff, Trash2 } from 'lucide-react'
+import { Tv, RefreshCw, Search, Eye, EyeOff, Trash2, CalendarDays } from 'lucide-react'
 import Image from 'next/image'
 import type { Channel } from '@/types/channel'
 
@@ -15,6 +15,7 @@ export default function AdminChannelsPage() {
   const [channels, setChannels] = useState<Channel[]>([])
   const [loading, setLoading] = useState(true)
   const [syncing, setSyncing] = useState(false)
+  const [syncingEpg, setSyncingEpg] = useState(false)
   const [search, setSearch] = useState('')
   const [syncResult, setSyncResult] = useState<string | null>(null)
 
@@ -54,6 +55,20 @@ export default function AdminChannelsPage() {
     }
   }
 
+  async function triggerEpgSync() {
+    setSyncingEpg(true)
+    setSyncResult('⏳ Sincronizando guía de programación (EPG)...')
+    try {
+      const res = await fetch('/api/sync-epg', { method: 'POST' })
+      const data = await res.json()
+      setSyncResult(data.inserted ? `✅ EPG sincronizado — ${data.inserted} programas` : `⚠️ ${data.message || 'Sin datos'}`)
+    } catch (err) {
+      setSyncResult(`❌ Error EPG: ${String(err)}`)
+    } finally {
+      setSyncingEpg(false)
+    }
+  }
+
   async function toggleChannel(id: string, current: boolean) {
     await supabase.from('channels').update({ is_active: !current }).eq('id', id)
     setChannels(prev => prev.map(c => c.id === id ? { ...c, is_active: !current } : c))
@@ -76,14 +91,25 @@ export default function AdminChannelsPage() {
           <Tv className="h-5 w-5 text-blue-400" />
           Canales IPTV ({channels.length})
         </h1>
-        <Button
-          onClick={triggerSync}
-          disabled={syncing}
-          className="bg-blue-600 hover:bg-blue-700 text-white gap-2"
-        >
-          <RefreshCw className={`h-4 w-4 ${syncing ? 'animate-spin' : ''}`} />
-          {syncing ? 'Sincronizando...' : 'Sincronizar ahora'}
-        </Button>
+        <div className="flex gap-2">
+          <Button
+            onClick={triggerSync}
+            disabled={syncing || syncingEpg}
+            className="bg-blue-600 hover:bg-blue-700 text-white gap-2"
+          >
+            <RefreshCw className={`h-4 w-4 ${syncing ? 'animate-spin' : ''}`} />
+            {syncing ? 'Sincronizando...' : 'Sincronizar canales'}
+          </Button>
+          <Button
+            onClick={triggerEpgSync}
+            disabled={syncing || syncingEpg}
+            variant="outline"
+            className="border-zinc-700 text-zinc-300 hover:bg-zinc-800 gap-2"
+          >
+            <CalendarDays className={`h-4 w-4 ${syncingEpg ? 'animate-spin' : ''}`} />
+            {syncingEpg ? 'Cargando...' : 'Sync EPG'}
+          </Button>
+        </div>
       </div>
 
       {syncResult && (

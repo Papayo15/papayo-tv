@@ -17,14 +17,34 @@ const CATEGORY_LABELS: Record<string, string> = {
   other: 'General',
 }
 
+export interface EpgProgram {
+  title: string
+  description: string
+  thumbnail: string
+  start_time: string
+  end_time: string
+}
+
 interface ChannelCardProps {
   channel: Channel
   status?: ChannelStatus
   isSelected?: boolean
+  currentProgram?: EpgProgram
   onClick?: () => void
 }
 
-export function ChannelCard({ channel, status = 'unknown', isSelected, onClick }: ChannelCardProps) {
+function timeProgress(start: string, end: string): number {
+  const now = Date.now()
+  const s = new Date(start).getTime()
+  const e = new Date(end).getTime()
+  return Math.min(100, Math.max(0, ((now - s) / (e - s)) * 100))
+}
+
+function formatTime(iso: string): string {
+  return new Date(iso).toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' })
+}
+
+export function ChannelCard({ channel, status = 'unknown', isSelected, currentProgram, onClick }: ChannelCardProps) {
   const isOffline = status === 'error' || status === 'cors-blocked' || status === 'offline'
 
   return (
@@ -60,10 +80,28 @@ export function ChannelCard({ channel, status = 'unknown', isSelected, onClick }
         {channel.name}
       </p>
 
-      {/* Category badge */}
-      <Badge variant="outline" className="text-[10px] border-zinc-700 text-zinc-500 px-1.5 py-0">
-        {CATEGORY_LABELS[channel.category] || 'General'}
-      </Badge>
+      {/* Current program */}
+      {currentProgram ? (
+        <div className="w-full space-y-1">
+          <p className="text-[10px] text-zinc-400 line-clamp-1 text-center leading-tight">
+            {currentProgram.title}
+          </p>
+          <p className="text-[10px] text-zinc-600 text-center">
+            {formatTime(currentProgram.start_time)} – {formatTime(currentProgram.end_time)}
+          </p>
+          {/* Progress bar */}
+          <div className="w-full h-0.5 bg-zinc-800 rounded-full overflow-hidden">
+            <div
+              className="h-full bg-red-500 rounded-full"
+              style={{ width: `${timeProgress(currentProgram.start_time, currentProgram.end_time)}%` }}
+            />
+          </div>
+        </div>
+      ) : (
+        <Badge variant="outline" className="text-[10px] border-zinc-700 text-zinc-500 px-1.5 py-0">
+          {CATEGORY_LABELS[channel.category] || 'General'}
+        </Badge>
+      )}
 
       {/* Status indicators */}
       {isOffline && (
