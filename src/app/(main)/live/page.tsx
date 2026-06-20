@@ -8,7 +8,7 @@ import { Input } from '@/components/ui/input'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Skeleton } from '@/components/ui/skeleton'
 import type { Channel, ChannelStatus } from '@/types/channel'
-import { Search, Tv, CalendarDays } from 'lucide-react'
+import { Search, Tv, CalendarDays, Volume2, VolumeX } from 'lucide-react'
 
 const COUNTRIES = [
   { code: 'all', label: 'Todos' },
@@ -54,6 +54,7 @@ export default function LivePage() {
   const [channels, setChannels] = useState<Channel[]>([])
   const [loading, setLoading] = useState(true)
   const [selected, setSelected] = useState<Channel | null>(null)
+  const [audioOn, setAudioOn] = useState(false)
   const [channelStatuses, setChannelStatuses] = useState<Record<string, ChannelStatus>>({})
   const [epgData, setEpgData] = useState<Record<string, EpgProgram>>({})
   const [search, setSearch] = useState('')
@@ -151,11 +152,20 @@ export default function LivePage() {
                 {selectedEpg.title}
               </span>
             )}
+            <button
+              onClick={() => setAudioOn(v => !v)}
+              className="ml-auto flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg bg-zinc-800 hover:bg-zinc-700 transition-colors"
+            >
+              {audioOn
+                ? <><Volume2 className="h-3.5 w-3.5 text-green-400" /><span className="text-green-400">Con audio</span></>
+                : <><VolumeX className="h-3.5 w-3.5 text-zinc-400" /><span className="text-zinc-400">Sin audio</span></>}
+            </button>
           </div>
           <VideoPlayer
             src={selected.url}
             title={selected.name}
             className="aspect-video"
+            muted={!audioOn}
             onError={() => handleChannelError(selected.id)}
             onPlay={() => handleChannelPlay(selected.id)}
           />
@@ -249,7 +259,7 @@ export default function LivePage() {
                   status={channelStatuses[channel.id]}
                   isSelected={selected?.id === channel.id}
                   currentProgram={ch.tvg_id ? epgData[ch.tvg_id] : undefined}
-                  onClick={() => setSelected(channel)}
+                  onClick={() => { setSelected(channel); setAudioOn(false) }}
                 />
               )
             })}

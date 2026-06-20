@@ -10,6 +10,7 @@ interface VideoPlayerProps {
   title?: string
   className?: string
   autoplay?: boolean
+  muted?: boolean
   onError?: () => void
   onPlay?: () => void
 }
@@ -20,7 +21,7 @@ function proxyUrl(src: string) {
   return `/api/proxy/stream?url=${encodeURIComponent(src)}`
 }
 
-export function VideoPlayer({ src, title, className, autoplay = true, onError, onPlay }: VideoPlayerProps) {
+export function VideoPlayer({ src, title, className, autoplay = true, muted = true, onError, onPlay }: VideoPlayerProps) {
   const videoRef = useRef<HTMLVideoElement>(null)
   const hlsRef = useRef<Hls | null>(null)
   const [state, setState] = useState<PlayerState>('loading')
@@ -129,6 +130,7 @@ export function VideoPlayer({ src, title, className, autoplay = true, onError, o
         ref={videoRef}
         className="w-full h-full object-contain"
         playsInline
+        muted={muted}
         controls={state === 'playing'}
       />
 
