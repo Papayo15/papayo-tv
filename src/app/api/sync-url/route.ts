@@ -63,6 +63,15 @@ export async function POST(req: NextRequest) {
     else inserted += batch.length
   }
 
+  // Save URL as playlist_source for daily re-sync
+  const sourceName = url.split('/').pop()?.split('?')[0]?.slice(0, 80) || url.slice(0, 80)
+  await supabase
+    .from('playlist_sources')
+    .upsert(
+      { name: sourceName, url, country: 'int', service: 'custom', channel_count: inserted, last_synced_at: new Date().toISOString() },
+      { onConflict: 'url' }
+    )
+
   return NextResponse.json({
     success: true,
     parsed: parsed.length,
