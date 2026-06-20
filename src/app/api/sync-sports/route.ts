@@ -104,7 +104,7 @@ async function run() {
   }
 
   // 4. Also recategorize any existing channels that are sports by name
-  await supabase.rpc('recategorize_sports').catch(() => null) // best-effort
+  try { await supabase.rpc('recategorize_sports') } catch { /* best-effort */ }
 
   return NextResponse.json({
     success: true,

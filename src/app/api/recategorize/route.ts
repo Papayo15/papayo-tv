@@ -176,13 +176,13 @@ async function run() {
 
   let totalFixed = 0
   for (const rule of RULES) {
-    const { count } = await supabase
+    const { data } = await supabase
       .from('channels')
       .update({ category: rule.category, last_synced_at: new Date().toISOString() })
       .ilike('name', `%${rule.pattern}%`)
       .neq('category', rule.category)
-      .select('id', { count: 'exact', head: true })
-    totalFixed += count || 0
+      .select('id')
+    totalFixed += data?.length || 0
   }
 
   return NextResponse.json({ success: true, fixed: totalFixed })

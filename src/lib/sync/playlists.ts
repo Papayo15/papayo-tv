@@ -46,8 +46,9 @@ export async function syncAllPlaylists(): Promise<{ synced: number; total_channe
   return { synced, total_channels: totalChannels, errors }
 }
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 async function syncPlaylistSource(
-  supabase: ReturnType<typeof createClient>,
+  supabase: any,
   source: { id: string; name: string; url: string; country: string; service: string }
 ): Promise<number> {
   const res = await fetch(source.url, {
@@ -57,7 +58,7 @@ async function syncPlaylistSource(
   if (!res.ok) throw new Error(`HTTP ${res.status}`)
 
   const text = await res.text()
-  const parsed = parseM3U(text)
+  const parsed = parseM3U(text, source.country, new Map())
   if (!parsed.length) return 0
 
   const rows = parsed.map(ch => ({
@@ -65,7 +66,7 @@ async function syncPlaylistSource(
     url: ch.url,
     logo: ch.logo || null,
     country: source.country,
-    category: normalizeCategory(ch.category, ch.name),
+    category: normalizeCategory(ch.category ? [ch.category] : [], ch.name),
     language: null,
     is_active: true,
     last_synced_at: new Date().toISOString(),
@@ -89,10 +90,8 @@ async function syncPlaylistSource(
 }
 
 // Quick SQL fix for common mis-categorized channels from Pluto/Samsung/Plex
-async function recategorizeAfterImport(
-  supabase: ReturnType<typeof createClient>,
-  country: string
-) {
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+async function recategorizeAfterImport(supabase: any, country: string) {
   const fixes = [
     // Sports
     `UPDATE channels SET category='sports' WHERE country='${country}' AND category != 'sports' AND (
@@ -136,6 +135,6 @@ async function recategorizeAfterImport(
     )`,
   ]
   for (const sql of fixes) {
-    await supabase.rpc('exec_sql', { sql }).catch(() => null)
+    try { await supabase.rpc('exec_sql', { sql }) } catch { /* best-effort */ }
   }
 }
