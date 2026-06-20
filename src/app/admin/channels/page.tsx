@@ -51,8 +51,15 @@ export default function AdminChannelsPage() {
           body: JSON.stringify({ country }),
         })
         const data = await res.json()
+        if (data.error || data.dbError) {
+          setSyncResult(`⚠️ ${country.toUpperCase()}: ${data.error || data.dbError}`)
+          await new Promise(r => setTimeout(r, 2000))
+        }
         total += data.inserted || 0
-      } catch { /* country failed, continue */ }
+      } catch (e) {
+        setSyncResult(`❌ ${country.toUpperCase()}: ${String(e)}`)
+        await new Promise(r => setTimeout(r, 1500))
+      }
     }
     setSyncResult(`✅ Listo — ${total} canales de ${COUNTRIES.length} países`)
     setSyncing(false)
