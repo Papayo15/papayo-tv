@@ -13,12 +13,12 @@ const ALL_COUNTRIES = [
 
 function cat(name: string): string {
   const n = name.toLowerCase()
-  if (/sport|deport|futbol|fútbol|bein|fox sport|espn|tyc|win sport|eurosport|nbc sport|sky sport|dazn|claro sport|movistar/i.test(n)) return 'sports'
-  if (/news|notic|cnn|bbc|canal 24|24h|ntn/i.test(n)) return 'news'
-  if (/kids|niños|junior|cartoon|disney|nickelodeon|infantil/i.test(n)) return 'kids'
-  if (/movie|pelicul|cine|film|cinema/i.test(n)) return 'movies'
-  if (/music|mtv|vevo|hits|música/i.test(n)) return 'music'
-  if (/doc|national geographic|history|discovery/i.test(n)) return 'documentary'
+  if (/sport|deport|fútbol|futbol|bein|beinsport|espn|tyc|win sport|winsport|dsport|eurosport|nbc sport|nbcsport|sky sport|skysport|dazn|claro sport|movistar|tudn|teledeporte|arena sport|bt sport|canal\+ sport|premier sport|stadium|gol tv|golazotv|golf channel|tennis channel|fight network|boxing|wrestl|ufc|mma|nascar|f1|formula|racing|formula one|motorsport|golf tv|futv|caracol dep|antena 2|rcn dep|sport1|sport 1|sport 2|sport 3|bein 1|bein 2|bein 3|onefootball|la liga tv|premier league tv|serie a tv|bundesliga tv|conmebol|concacaf|nfl network|mlb network|nba tv|tnt sport|tntsp|max sport|nova sport|polsat sport|eleven sport|match tv|match! sport|viasat sport|canal dos sport|canal 7 dep|tv3 deport|directv sport|directvsport/i.test(n)) return 'sports'
+  if (/news|notic|cnn|bbc|canal 24|24h|ntn|n24|tlc news|france 24|al jazeera|euronews|rtve|antena 3 noticias|infobae|telemundo|univision news|abc news|nbc news|fox news|telesur|hispan tv|russia today|rt en/i.test(n)) return 'news'
+  if (/kids|niños|junior|cartoon|disney|nickelodeon|infantil|paka paka|clan tv|baby tv|boomerang|discovery kids|mini|tiji|gulli|boing|gloob|tv5 monde junior/i.test(n)) return 'kids'
+  if (/movie|pelicul|cine|film|cinema|hollywood|tcm|amc|tnt movie|fx movie|hbo|max orig|paramount|starz|showtime|cinemax|lifetime|hallmark/i.test(n)) return 'movies'
+  if (/music|mtv|vevo|hits|música|vh1|rock antena|hit music|los40|calle 13|canal fiesta/i.test(n)) return 'music'
+  if (/doc|national geographic|natgeo|history|discovery|animal planet|odisea|viajar|viajes|cooking|food network|hogar|home|planet/i.test(n)) return 'documentary'
   return 'entertainment'
 }
 

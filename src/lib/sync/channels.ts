@@ -30,12 +30,12 @@ export async function loadChannelsMeta(): Promise<Map<string, ChannelMeta>> {
 export function normalizeCategory(cats: string[], name = ''): string {
   const n = name.toLowerCase()
   if (cats.length === 0) {
-    if (/sport|deport|futbol|fútbol|bein|fox sport|espn|tyc|win sport|dsport|eurosport|nbc sport|sky sport|dazn|claro sport|movistar/i.test(n)) return 'sports'
-    if (/news|notic|cnn|bbc|canal 24|24h|telediario|ntn/i.test(n)) return 'news'
-    if (/kids|niños|junior|cartoon|disney|nickelodeon|infantil/i.test(n)) return 'kids'
-    if (/movie|pelicul|cine|film|cinema/i.test(n)) return 'movies'
-    if (/music|mtv|vevo|hits|música/i.test(n)) return 'music'
-    if (/doc|national geographic|history|discovery/i.test(n)) return 'documentary'
+    if (/sport|deport|fútbol|futbol|bein|espn|tyc|win sport|dsport|eurosport|nbc sport|sky sport|dazn|claro sport|movistar|tudn|teledeporte|bt sport|stadium|golf|tennis|racing|formula|ufc|mma|nascar|nfl|mlb|nba tv|tnt sport|polsat sport|eleven sport|directv sport/i.test(n)) return 'sports'
+    if (/news|notic|cnn|bbc|canal 24|24h|ntn|france 24|al jazeera|euronews|fox news|telesur/i.test(n)) return 'news'
+    if (/kids|niños|junior|cartoon|disney|nickelodeon|infantil|paka paka|clan tv|discovery kids/i.test(n)) return 'kids'
+    if (/movie|pelicul|cine|film|cinema|hbo|paramount|starz/i.test(n)) return 'movies'
+    if (/music|mtv|vevo|hits|música|vh1/i.test(n)) return 'music'
+    if (/doc|national geographic|natgeo|history|discovery|animal planet/i.test(n)) return 'documentary'
     return 'entertainment'
   }
   const c = cats[0].toLowerCase()
