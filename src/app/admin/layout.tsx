@@ -22,8 +22,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
     .eq('id', user.id)
     .single()
 
-  // Temporarily disabled for debugging
-  // if (!profile?.is_admin) redirect('/live')
+  if (!profile?.is_admin) redirect('/live')
 
   return (
     <div className="min-h-screen bg-zinc-950 text-white">

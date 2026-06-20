@@ -12,10 +12,12 @@ import {
   Settings,
   LayoutDashboard,
   LogOut,
+  RefreshCw,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
+import { useState } from 'react'
 
 const navItems = [
   { href: '/live', label: 'TV en Vivo', icon: Tv },
@@ -34,11 +36,29 @@ export function Sidebar({ isAdmin }: SidebarProps) {
   const pathname = usePathname()
   const router = useRouter()
   const supabase = createClient()
+  const [syncing, setSyncing] = useState(false)
+  const [syncMsg, setSyncMsg] = useState('')
 
   async function handleLogout() {
     await supabase.auth.signOut()
     router.push('/login')
     router.refresh()
+  }
+
+  async function handleQuickSync() {
+    setSyncing(true)
+    setSyncMsg('Actualizando...')
+    try {
+      const res = await fetch('/api/sync-all', { method: 'POST' })
+      const data = await res.json()
+      setSyncMsg(`✅ ${data.channels || 0} canales`)
+      setTimeout(() => setSyncMsg(''), 4000)
+    } catch {
+      setSyncMsg('❌ Error')
+      setTimeout(() => setSyncMsg(''), 3000)
+    } finally {
+      setSyncing(false)
+    }
   }
 
   return (
@@ -84,6 +104,16 @@ export function Sidebar({ isAdmin }: SidebarProps) {
               <LayoutDashboard className="h-4 w-4 shrink-0" />
               Panel Admin
             </Link>
+
+            {/* Quick sync button */}
+            <button
+              onClick={handleQuickSync}
+              disabled={syncing}
+              className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-zinc-400 hover:text-white hover:bg-zinc-800 transition-colors disabled:opacity-50"
+            >
+              <RefreshCw className={cn('h-4 w-4 shrink-0', syncing && 'animate-spin')} />
+              {syncMsg || 'Actualizar todo'}
+            </button>
           </>
         )}
       </nav>
