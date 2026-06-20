@@ -37,19 +37,6 @@ export async function proxy(request: NextRequest) {
     return NextResponse.redirect(new URL('/live', request.url))
   }
 
-  // Admin-only routes
-  if (pathname.startsWith('/admin') && user) {
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('is_admin')
-      .eq('id', user.id)
-      .single()
-
-    if (!profile?.is_admin) {
-      return NextResponse.redirect(new URL('/live', request.url))
-    }
-  }
-
   return supabaseResponse
 }
 
