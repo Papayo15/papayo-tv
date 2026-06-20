@@ -184,12 +184,14 @@ export default function AdminChannelsPage() {
         setSyncResult(`❌ ${data.error}`)
       } else {
         // Save as playlist_source for daily re-sync
-        await fetch('/api/playlist-sources', {
+        const srcRes = await fetch('/api/playlist-sources', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ url, name: url.split('/').pop()?.split('?')[0] || url, service: 'custom' }),
         })
-        setSyncResult(`✅ Lista importada — ${data.inserted} canales agregados (${data.parsed} en la lista)`)
+        const srcData = await srcRes.json()
+        const srcNote = srcData.error ? ` ⚠️ Fuente: ${srcData.error}` : ' · guardada como fuente'
+        setSyncResult(`✅ Lista importada — ${data.inserted} canales agregados (${data.parsed} en la lista)${srcNote}`)
         setQuickUrl('')
         await Promise.all([loadChannels(), loadSources()])
       }
