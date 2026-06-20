@@ -40,6 +40,7 @@ export default function SportsPage() {
   const [audioOn, setAudioOn] = useState(false)
   const [search, setSearch] = useState('')
   const [network, setNetwork] = useState('all')
+  const [dead, setDead] = useState<Set<string>>(new Set())
 
   useEffect(() => {
     async function load() {
@@ -73,8 +74,18 @@ export default function SportsPage() {
     load()
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
+  function markDead(g: ChannelGroup, allFiltered: ChannelGroup[]) {
+    setDead(prev => new Set([...prev, g.id]))
+    // auto-advance to next alive channel
+    const idx = allFiltered.findIndex(x => x.id === g.id)
+    const next = allFiltered.slice(idx + 1).find(x => !dead.has(x.id))
+      ?? allFiltered.slice(0, idx).find(x => !dead.has(x.id))
+    setSelected(next ?? null)
+  }
+
   const activeNet = NETWORKS.find(n => n.id === network)
   const filtered = groups.filter(g => {
+    if (dead.has(g.id)) return false
     const n = g.name.toLowerCase()
     if (search && !n.includes(search.toLowerCase())) return false
     if (!activeNet?.pattern) return true
@@ -146,6 +157,7 @@ export default function SportsPage() {
               title={selected.name}
               className="aspect-video"
               muted={!audioOn}
+              onError={() => markDead(selected, filtered)}
             />
 
             {/* Mini next/prev labels */}
