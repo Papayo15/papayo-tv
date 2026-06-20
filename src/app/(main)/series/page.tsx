@@ -7,9 +7,28 @@ export const revalidate = 1800
 
 export default async function SeriesPage() {
   const [trending, popular] = await Promise.all([
-    getTrendingSeries().then(d => d.results?.slice(0, 12) || []),
-    getPopularSeries().then(d => d.results?.slice(0, 20) || []),
+    getTrendingSeries().then(d => d.results?.slice(0, 12) || []).catch(() => []),
+    getPopularSeries().then(d => d.results?.slice(0, 20) || []).catch(() => []),
   ])
+
+  if (trending.length === 0 && popular.length === 0) {
+    return (
+      <div className="space-y-4">
+        <h1 className="text-white font-bold text-xl flex items-center gap-2">
+          <Clapperboard className="h-5 w-5 text-green-400" />
+          Series
+        </h1>
+        <div className="text-center py-24">
+          <Clapperboard className="h-14 w-14 text-zinc-700 mx-auto mb-4" />
+          <p className="text-zinc-300 font-semibold text-lg">API key de TMDB no configurada</p>
+          <p className="text-zinc-500 text-sm mt-2 max-w-sm mx-auto">
+            Ve a <span className="text-zinc-300">Vercel → Settings → Environment Variables</span> y agrega{' '}
+            <span className="font-mono text-yellow-400">TMDB_API_KEY</span> con tu token de themoviedb.org
+          </p>
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div className="space-y-8">
