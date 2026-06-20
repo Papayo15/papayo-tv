@@ -128,3 +128,20 @@
     @apply font-sans;
   }
 }
+
+/* TV / D-pad navigation — highlight focused elements clearly */
+@media (hover: none) and (pointer: coarse), (display-mode: standalone) {
+  button:focus-visible,
+  a:focus-visible,
+  [tabindex]:focus-visible {
+    outline: 3px solid #dc2626 !important;
+    outline-offset: 3px;
+  }
+}
+
+/* Larger tap targets on TV/fullscreen mode */
+@media (display-mode: standalone) {
+  button, a {
+    min-height: 44px;
+  }
+}
