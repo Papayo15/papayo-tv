@@ -65,8 +65,9 @@ export default function AdminChannelsPage() {
   }
 
   async function loadSources() {
-    const { data } = await supabase.from('playlist_sources').select('*').order('service').order('name')
-    setSources(data || [])
+    const res = await fetch('/api/playlist-sources')
+    const data = await res.json()
+    setSources(Array.isArray(data) ? data : [])
   }
 
   async function triggerSync() {
@@ -145,26 +146,33 @@ export default function AdminChannelsPage() {
   }
 
   async function toggleSource(id: string, current: boolean) {
-    await supabase.from('playlist_sources').update({ is_active: !current }).eq('id', id)
+    await fetch('/api/playlist-sources', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id, is_active: !current }),
+    })
     setSources(prev => prev.map(s => s.id === id ? { ...s, is_active: !current } : s))
   }
 
   async function deleteSource(id: string) {
     if (!confirm('¿Eliminar esta fuente?')) return
-    await supabase.from('playlist_sources').delete().eq('id', id)
+    await fetch('/api/playlist-sources', {
+      method: 'DELETE',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id }),
+    })
     setSources(prev => prev.filter(s => s.id !== id))
   }
 
   async function addSource() {
     if (!newUrl.trim()) return
     setAddingSource(true)
-    const { error } = await supabase.from('playlist_sources').insert({
-      name: newName.trim() || newUrl.trim(),
-      url: newUrl.trim(),
-      country: 'int',
-      service: 'custom',
+    const res = await fetch('/api/playlist-sources', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name: newName.trim() || newUrl.trim(), url: newUrl.trim() }),
     })
-    if (!error) {
+    if (res.ok) {
       setNewUrl('')
       setNewName('')
       await loadSources()
