@@ -12,8 +12,8 @@ const SOURCES = [
 
 function parseM3U(text: string, defaultCountry: string) {
   const lines = text.split('\n').map(l => l.trim()).filter(Boolean)
-  const channels = []
-  let current: Record<string, string> | null = null
+  const channels: Array<{ name: string; url: string; logo: string; country: string; category: string; language: string }> = []
+  let current: { name: string; url: string; logo: string; country: string; category: string; language: string } | null = null
 
   for (const line of lines) {
     if (line.startsWith('#EXTINF:')) {
@@ -30,11 +30,12 @@ function parseM3U(text: string, defaultCountry: string) {
         : group.toLowerCase().includes('music') ? 'music'
         : 'other'
 
-      current = { name: name || 'Sin nombre', logo: logo || '', country: country || defaultCountry, category: cat, language: lang || '' }
+      current = { name: name || 'Sin nombre', url: '', logo: logo || '', country: country || defaultCountry, category: cat, language: lang || '' }
     } else if (line.startsWith('http') && current) {
       channels.push({ ...current, url: line })
       current = null
     }
+
   }
   return channels
 }
