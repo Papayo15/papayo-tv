@@ -33,10 +33,10 @@ export default function AdminChannelsPage() {
     setSyncing(true)
     setSyncResult(null)
     try {
-      const { data, error } = await supabase.functions.invoke('sync-channels')
-      if (error) throw error
-      setSyncResult(`✅ Sincronización completada: ${data.inserted} canales actualizados`)
-      await loadChannels()
+      const res = await fetch('/api/sync', { method: 'POST' })
+      if (!res.ok) throw new Error(`Error ${res.status}`)
+      setSyncResult('✅ Sincronización iniciada — los canales aparecerán en unos minutos')
+      setTimeout(() => loadChannels(), 15000)
     } catch (err) {
       setSyncResult(`❌ Error: ${String(err)}`)
     } finally {
