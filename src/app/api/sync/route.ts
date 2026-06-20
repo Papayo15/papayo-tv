@@ -1,13 +1,15 @@
 import { createClient } from '@supabase/supabase-js'
 import { NextResponse } from 'next/server'
 
+const BASE = 'https://raw.githubusercontent.com/iptv-org/iptv/master/streams'
+
 const SOURCES = [
-  { url: 'https://iptv-org.github.io/iptv/index.country/mx.m3u', country: 'mx' },
-  { url: 'https://iptv-org.github.io/iptv/index.country/es.m3u', country: 'es' },
-  { url: 'https://iptv-org.github.io/iptv/index.country/ar.m3u', country: 'ar' },
-  { url: 'https://iptv-org.github.io/iptv/index.country/us.m3u', country: 'us' },
-  { url: 'https://iptv-org.github.io/iptv/index.country/co.m3u', country: 'co' },
-  { url: 'https://iptv-org.github.io/iptv/index.country/cl.m3u', country: 'cl' },
+  { url: `${BASE}/mx.m3u`, country: 'mx' },
+  { url: `${BASE}/es.m3u`, country: 'es' },
+  { url: `${BASE}/ar.m3u`, country: 'ar' },
+  { url: `${BASE}/us.m3u`, country: 'us' },
+  { url: `${BASE}/co.m3u`, country: 'co' },
+  { url: `${BASE}/cl.m3u`, country: 'cl' },
 ]
 
 function parseM3U(text: string, defaultCountry: string) {

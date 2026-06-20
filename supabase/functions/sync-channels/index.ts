@@ -1,16 +1,15 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 
-const IPTV_BASE = 'https://iptv-org.github.io/iptv'
+const IPTV_BASE = 'https://raw.githubusercontent.com/iptv-org/iptv/master/streams'
 
 const SOURCES = [
-  { url: `${IPTV_BASE}/index.country/mx.m3u`, country: 'mx' },
-  { url: `${IPTV_BASE}/index.country/es.m3u`, country: 'es' },
-  { url: `${IPTV_BASE}/index.country/us.m3u`, country: 'us' },
-  { url: `${IPTV_BASE}/index.country/ar.m3u`, country: 'ar' },
-  { url: `${IPTV_BASE}/index.country/co.m3u`, country: 'co' },
-  { url: `${IPTV_BASE}/index.country/br.m3u`, country: 'br' },
-  { url: `${IPTV_BASE}/index.country/cl.m3u`, country: 'cl' },
-  { url: `${IPTV_BASE}/index.category/sports.m3u`, country: 'international' },
+  { url: `${IPTV_BASE}/mx.m3u`, country: 'mx' },
+  { url: `${IPTV_BASE}/es.m3u`, country: 'es' },
+  { url: `${IPTV_BASE}/us.m3u`, country: 'us' },
+  { url: `${IPTV_BASE}/ar.m3u`, country: 'ar' },
+  { url: `${IPTV_BASE}/co.m3u`, country: 'co' },
+  { url: `${IPTV_BASE}/br.m3u`, country: 'br' },
+  { url: `${IPTV_BASE}/cl.m3u`, country: 'cl' },
 ]
 
 interface M3UChannel {
