@@ -35,8 +35,8 @@ export default async function EventsPage() {
       {(events || []).length === 0 && (
         <div className="text-center py-24">
           <Trophy className="h-14 w-14 text-zinc-700 mx-auto mb-4" />
-          <p className="text-zinc-400 font-medium">No hay eventos activos en este momento</p>
-          <p className="text-zinc-600 text-sm mt-1">Los eventos se agregan desde el panel de administración</p>
+          <p className="text-zinc-400 font-medium">No hay eventos deportivos activos ahora</p>
+          <p className="text-zinc-600 text-sm mt-1">Los eventos se detectan automáticamente — Champions League, NBA, F1, y más</p>
         </div>
       )}
 
@@ -64,15 +64,9 @@ export default async function EventsPage() {
         </section>
       )}
 
-      {/* Quick link */}
-      <div className="rounded-xl bg-zinc-900 border border-zinc-800 p-4 flex items-center justify-between">
-        <div>
-          <p className="text-zinc-300 text-sm font-medium">¿Eres admin?</p>
-          <p className="text-zinc-600 text-xs mt-0.5">Crea y gestiona eventos desde el panel</p>
-        </div>
-        <Link href="/admin/events" className="flex items-center gap-1 text-red-400 text-sm hover:text-red-300 transition-colors">
-          Panel admin <ChevronRight className="h-4 w-4" />
-        </Link>
+      {/* Info */}
+      <div className="rounded-xl bg-zinc-900 border border-zinc-800 p-4">
+        <p className="text-zinc-500 text-xs">Los eventos deportivos se actualizan automáticamente cada día a las 4am UTC. Incluye: Champions League, La Liga, Premier League, NBA, NFL, F1, Copa Libertadores y más.</p>
       </div>
     </div>
   )

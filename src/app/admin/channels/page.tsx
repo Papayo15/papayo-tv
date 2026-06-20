@@ -61,7 +61,14 @@ export default function AdminChannelsPage() {
         await new Promise(r => setTimeout(r, 1500))
       }
     }
-    setSyncResult(`✅ Listo — ${total} canales de ${COUNTRIES.length} países`)
+    setSyncResult(`✅ Canales listos — ${total} de ${COUNTRIES.length} países. Detectando eventos deportivos...`)
+    // Auto-sync events after channels are ready
+    try {
+      await fetch('/api/sync-events', { method: 'POST' })
+      setSyncResult(`✅ Listo — ${total} canales + eventos deportivos actualizados`)
+    } catch {
+      setSyncResult(`✅ Listo — ${total} canales (eventos: no disponibles)`)
+    }
     setSyncing(false)
     await loadChannels()
   }
