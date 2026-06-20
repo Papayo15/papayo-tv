@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { VideoPlayer } from '@/components/player/VideoPlayer'
 import { groupChannels, type ChannelGroup } from '@/lib/groupChannels'
-import { Trophy, Tv, Search, Volume2, VolumeX, Layers } from 'lucide-react'
+import { Trophy, Tv, Search, Volume2, VolumeX, Layers, ChevronLeft, ChevronRight } from 'lucide-react'
 import { Input } from '@/components/ui/input'
 import { Skeleton } from '@/components/ui/skeleton'
 import Image from 'next/image'
@@ -95,34 +95,68 @@ export default function SportsPage() {
         )}
       </div>
 
-      {selected && (
-        <div className="rounded-xl overflow-hidden border border-zinc-800 bg-zinc-950">
-          <div className="px-4 py-2 border-b border-zinc-800 flex items-center gap-2">
-            <div className="h-2 w-2 rounded-full bg-red-500 animate-pulse" />
-            <span className="text-white text-sm font-medium">{selected.name}</span>
-            {selected.count > 1 && (
-              <span className="flex items-center gap-1 text-[10px] text-zinc-500 bg-zinc-800 px-1.5 py-0.5 rounded-full">
-                <Layers className="h-2.5 w-2.5" />{selected.count} señales
-              </span>
-            )}
-            <button
-              onClick={() => setAudioOn(v => !v)}
-              className="ml-auto flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg bg-zinc-800 hover:bg-zinc-700 transition-colors"
-            >
-              {audioOn
-                ? <><Volume2 className="h-3.5 w-3.5 text-green-400" /><span className="text-green-400">Con audio</span></>
-                : <><VolumeX className="h-3.5 w-3.5 text-zinc-400" /><span className="text-zinc-400">Sin audio</span></>}
-            </button>
+      {selected && (() => {
+        const idx = filtered.findIndex(g => g.id === selected.id)
+        const prev = idx > 0 ? filtered[idx - 1] : null
+        const next = idx < filtered.length - 1 ? filtered[idx + 1] : null
+        return (
+          <div className="rounded-xl overflow-hidden border border-zinc-800 bg-zinc-950">
+            <div className="px-3 py-2 border-b border-zinc-800 flex items-center gap-2">
+              {/* Prev */}
+              <button
+                onClick={() => prev && setSelected(prev)}
+                disabled={!prev}
+                className="p-1 rounded text-zinc-400 hover:text-white hover:bg-zinc-800 disabled:opacity-30 disabled:cursor-not-allowed transition-colors shrink-0"
+                title={prev?.name}
+              >
+                <ChevronLeft className="h-4 w-4" />
+              </button>
+
+              <div className="h-2 w-2 rounded-full bg-red-500 animate-pulse shrink-0" />
+              <span className="text-white text-sm font-medium truncate flex-1">{selected.name}</span>
+              {selected.count > 1 && (
+                <span className="flex items-center gap-1 text-[10px] text-zinc-500 bg-zinc-800 px-1.5 py-0.5 rounded-full shrink-0">
+                  <Layers className="h-2.5 w-2.5" />{selected.count}
+                </span>
+              )}
+              {/* Audio */}
+              <button
+                onClick={() => setAudioOn(v => !v)}
+                className="flex items-center gap-1.5 text-xs px-2 py-1.5 rounded-lg bg-zinc-800 hover:bg-zinc-700 transition-colors shrink-0"
+              >
+                {audioOn
+                  ? <><Volume2 className="h-3.5 w-3.5 text-green-400" /><span className="text-green-400 hidden sm:inline">Audio</span></>
+                  : <><VolumeX className="h-3.5 w-3.5 text-zinc-400" /><span className="text-zinc-400 hidden sm:inline">Mudo</span></>}
+              </button>
+
+              {/* Next */}
+              <button
+                onClick={() => next && setSelected(next)}
+                disabled={!next}
+                className="p-1 rounded text-zinc-400 hover:text-white hover:bg-zinc-800 disabled:opacity-30 disabled:cursor-not-allowed transition-colors shrink-0"
+                title={next?.name}
+              >
+                <ChevronRight className="h-4 w-4" />
+              </button>
+            </div>
+
+            <VideoPlayer
+              src={selected.primary}
+              fallbacks={selected.fallbacks}
+              title={selected.name}
+              className="aspect-video"
+              muted={!audioOn}
+            />
+
+            {/* Mini next/prev labels */}
+            <div className="flex items-center justify-between px-3 py-1.5 border-t border-zinc-800/50 text-[10px] text-zinc-600">
+              <span>{prev ? `◀ ${prev.name}` : ''}</span>
+              <span className="text-zinc-700">{idx + 1} / {filtered.length}</span>
+              <span>{next ? `${next.name} ▶` : ''}</span>
+            </div>
           </div>
-          <VideoPlayer
-            src={selected.primary}
-            fallbacks={selected.fallbacks}
-            title={selected.name}
-            className="aspect-video"
-            muted={!audioOn}
-          />
-        </div>
-      )}
+        )
+      })()}
 
       <div className="relative">
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-500" />

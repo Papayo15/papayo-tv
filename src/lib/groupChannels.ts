@@ -49,7 +49,7 @@ export function groupChannels(channels: Channel[]): ChannelGroup[] {
           .split(' ')
           .map(w => w.charAt(0).toUpperCase() + w.slice(1))
           .join(' '),
-        logo: ch.logo,
+        logo: ch.logo ?? null,
         country: ch.country,
         category: ch.category,
         primary: ch.url,
