@@ -26,7 +26,10 @@ export async function POST(req: NextRequest) {
   const supabase = admin()
   const { data, error } = await supabase
     .from('playlist_sources')
-    .insert({ name: name || url, url, country: country || 'int', service: service || 'custom' })
+    .upsert(
+      { name: name || url, url, country: country || 'int', service: service || 'custom' },
+      { onConflict: 'url', ignoreDuplicates: false }
+    )
     .select()
     .single()
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })

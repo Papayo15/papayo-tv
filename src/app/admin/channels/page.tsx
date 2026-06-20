@@ -169,22 +169,29 @@ export default function AdminChannelsPage() {
   }
 
   async function quickSyncUrl() {
-    if (!quickUrl.trim()) return
+    const url = quickUrl.replace(/^[^h]+(?=https?:\/\/)/, '').trim()
+    if (!url) return
     setQuickSyncing(true)
     setSyncResult('⏳ Descargando y sincronizando lista...')
     try {
       const res = await fetch('/api/sync-url', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ url: quickUrl.replace(/^[^h]+(?=https?:\/\/)/, '').trim() }),
+        body: JSON.stringify({ url }),
       })
       const data = await res.json()
       if (data.error) {
         setSyncResult(`❌ ${data.error}`)
       } else {
+        // Save as playlist_source for daily re-sync
+        await fetch('/api/playlist-sources', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ url, name: url.split('/').pop()?.split('?')[0] || url, service: 'custom' }),
+        })
         setSyncResult(`✅ Lista importada — ${data.inserted} canales agregados (${data.parsed} en la lista)`)
         setQuickUrl('')
-        await loadChannels()
+        await Promise.all([loadChannels(), loadSources()])
       }
     } catch (e) {
       setSyncResult(`❌ Error: ${String(e)}`)
