@@ -1,5 +1,8 @@
 import type { Metadata, Viewport } from 'next'
 import { Geist } from 'next/font/google'
+import { headers } from 'next/headers'
+import { LangProvider } from '@/i18n/LangContext'
+import { detectLang } from '@/i18n/translations'
 import './globals.css'
 
 const geist = Geist({ variable: '--font-geist-sans', subsets: ['latin'] })
@@ -28,16 +31,20 @@ export const metadata: Metadata = {
   },
 }
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+export default async function RootLayout({ children }: { children: React.ReactNode }) {
+  const hdrs = await headers()
+  const defaultLang = detectLang(hdrs.get('accept-language') || '')
   return (
-    <html lang="es" className={`${geist.variable} h-full antialiased`}>
+    <html lang={defaultLang} className={`${geist.variable} h-full antialiased`}>
       <head>
         <meta name="mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
         <link rel="apple-touch-icon" href="/icons/icon-192.png" />
       </head>
-      <body className="min-h-full flex flex-col bg-zinc-950">{children}</body>
+      <body className="min-h-full flex flex-col bg-zinc-950">
+        <LangProvider defaultLang={defaultLang}>{children}</LangProvider>
+      </body>
     </html>
   )
 }

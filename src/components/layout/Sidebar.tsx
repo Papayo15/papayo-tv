@@ -3,36 +3,17 @@
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import {
-  Tv,
-  Film,
-  Clapperboard,
-  Trophy,
-  Star,
-  Search,
-  Heart,
-  Settings,
-  LayoutDashboard,
-  LogOut,
-  RefreshCw,
+  Tv, Film, Clapperboard, Trophy, Star, Search,
+  Heart, Settings, LayoutDashboard, LogOut, RefreshCw, Globe,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
+import { useLang } from '@/i18n/LangContext'
+import { type Lang } from '@/i18n/translations'
 
-const navItems = [
-  { href: '/live', label: 'TV en Vivo', icon: Tv },
-  { href: '/movies', label: 'Películas', icon: Film },
-  { href: '/series', label: 'Series', icon: Clapperboard },
-  { href: '/sports', label: 'Deportes', icon: Trophy },
-  { href: '/events', label: 'Eventos', icon: Star },
-  { href: '/search', label: 'Buscar', icon: Search },
-  { href: '/favorites', label: 'Favoritos', icon: Heart },
-]
-
-interface SidebarProps {
-  isAdmin?: boolean
-}
+interface SidebarProps { isAdmin?: boolean }
 
 export function Sidebar({ isAdmin }: SidebarProps) {
   const pathname = usePathname()
@@ -40,6 +21,18 @@ export function Sidebar({ isAdmin }: SidebarProps) {
   const supabase = createClient()
   const [syncing, setSyncing] = useState(false)
   const [syncMsg, setSyncMsg] = useState('')
+  const [showLangs, setShowLangs] = useState(false)
+  const { t, lang, setLang, languages } = useLang()
+
+  const navItems = [
+    { href: '/live', label: t.live, icon: Tv },
+    { href: '/movies', label: t.movies, icon: Film },
+    { href: '/series', label: t.series, icon: Clapperboard },
+    { href: '/sports', label: t.sports, icon: Trophy },
+    { href: '/events', label: t.events, icon: Star },
+    { href: '/search', label: t.search, icon: Search },
+    { href: '/favorites', label: 'Favoritos', icon: Heart },
+  ]
 
   async function handleLogout() {
     await supabase.auth.signOut()
@@ -49,11 +42,11 @@ export function Sidebar({ isAdmin }: SidebarProps) {
 
   async function handleQuickSync() {
     setSyncing(true)
-    setSyncMsg('Actualizando...')
+    setSyncMsg(t.syncing)
     try {
       const res = await fetch('/api/sync-all', { method: 'POST' })
       const data = await res.json()
-      setSyncMsg(`✅ ${data.channels || 0} canales`)
+      setSyncMsg(`✅ ${data.channels || 0} ${t.channels}`)
       setTimeout(() => setSyncMsg(''), 4000)
     } catch {
       setSyncMsg('❌ Error')
@@ -104,17 +97,15 @@ export function Sidebar({ isAdmin }: SidebarProps) {
               )}
             >
               <LayoutDashboard className="h-4 w-4 shrink-0" />
-              Panel Admin
+              {t.adminPanel}
             </Link>
-
-            {/* Quick sync button */}
             <button
               onClick={handleQuickSync}
               disabled={syncing}
               className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-zinc-400 hover:text-white hover:bg-zinc-800 transition-colors disabled:opacity-50"
             >
               <RefreshCw className={cn('h-4 w-4 shrink-0', syncing && 'animate-spin')} />
-              {syncMsg || 'Actualizar todo'}
+              {syncMsg || t.updateAll}
             </button>
           </>
         )}
@@ -122,19 +113,46 @@ export function Sidebar({ isAdmin }: SidebarProps) {
 
       {/* Footer */}
       <div className="p-3 border-t border-zinc-800 space-y-1">
+        {/* Language selector */}
+        <div className="relative">
+          <button
+            onClick={() => setShowLangs(v => !v)}
+            className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-zinc-400 hover:text-white hover:bg-zinc-800 transition-colors"
+          >
+            <Globe className="h-4 w-4 shrink-0" />
+            {languages[lang]}
+          </button>
+          {showLangs && (
+            <div className="absolute bottom-full left-0 right-0 mb-1 bg-zinc-800 border border-zinc-700 rounded-lg shadow-xl overflow-hidden max-h-60 overflow-y-auto">
+              {(Object.entries(languages) as [Lang, string][]).map(([code, name]) => (
+                <button
+                  key={code}
+                  onClick={() => { setLang(code); setShowLangs(false) }}
+                  className={cn(
+                    'w-full text-left px-3 py-2 text-sm transition-colors',
+                    lang === code ? 'text-red-400 bg-zinc-700' : 'text-zinc-300 hover:bg-zinc-700'
+                  )}
+                >
+                  {name}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+
         <Link
           href="/settings"
           className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-zinc-400 hover:text-white hover:bg-zinc-800 transition-colors"
         >
           <Settings className="h-4 w-4 shrink-0" />
-          Configuración
+          {t.country}
         </Link>
         <button
           onClick={handleLogout}
           className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-zinc-400 hover:text-red-400 hover:bg-zinc-800 transition-colors"
         >
           <LogOut className="h-4 w-4 shrink-0" />
-          Cerrar sesión
+          {lang === 'es' ? 'Cerrar sesión' : lang === 'en' ? 'Sign out' : lang === 'pt' ? 'Sair' : lang === 'de' ? 'Abmelden' : lang === 'fr' ? 'Déconnexion' : lang === 'it' ? 'Esci' : lang === 'zh' ? '退出' : lang === 'ja' ? 'ログアウト' : lang === 'ko' ? '로그아웃' : 'تسجيل خروج'}
         </button>
       </div>
     </aside>

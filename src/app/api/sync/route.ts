@@ -64,13 +64,21 @@ export async function POST(req: Request) {
 
   const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!)
 
+  // Check if tvg_id column exists (migration 003 may not have been run)
+  const { error: colCheck } = await supabase.from('channels').select('tvg_id').limit(1)
+  const hasTvgId = !colCheck
+
   let inserted = 0
   for (let i = 0; i < channels.length; i += 200) {
-    const batch = channels.slice(i, i + 200).map(c => ({
-      name: c.name, url: c.url, tvg_id: c.tvg_id,
-      logo: c.logo, country: c.country, category: c.category,
-      language: null, is_active: true, last_synced_at: new Date().toISOString(),
-    }))
+    const batch = channels.slice(i, i + 200).map(c => {
+      const row: Record<string, unknown> = {
+        name: c.name, url: c.url,
+        logo: c.logo, country: c.country, category: c.category,
+        language: null, is_active: true, last_synced_at: new Date().toISOString(),
+      }
+      if (hasTvgId) row.tvg_id = c.tvg_id
+      return row
+    })
     const { error } = await supabase.from('channels').upsert(batch, { onConflict: 'url' })
     if (error) return NextResponse.json({ inserted, country, parsed: channels.length, dbError: error.message })
     inserted += batch.length
