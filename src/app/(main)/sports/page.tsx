@@ -19,8 +19,8 @@ export default async function SportsPage() {
     supabase
       .from('channels')
       .select('*')
-      .eq('category', 'sports')
       .eq('is_active', true)
+      .or('category.eq.sports,name.ilike.%sport%,name.ilike.%ESPN%,name.ilike.%Fox Sport%,name.ilike.%deport%,name.ilike.%futbol%,name.ilike.%fútbol%,name.ilike.%beIN%,name.ilike.%Win Sport%,name.ilike.%DirecTV Sport%,name.ilike.%TyC%,name.ilike.%DSports%')
       .order('name'),
   ])
 

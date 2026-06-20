@@ -47,7 +47,18 @@ export default function LivePage() {
       setLoading(true)
       let query = supabase.from('channels').select('*').eq('is_active', true).order('name')
       if (country !== 'all') query = query.eq('country', country)
-      if (category !== 'all') query = query.eq('category', category)
+      if (category !== 'all') {
+        const nameFilters: Record<string, string> = {
+          sports: 'category.eq.sports,name.ilike.%sport%,name.ilike.%ESPN%,name.ilike.%Fox Sport%,name.ilike.%deport%,name.ilike.%beIN%,name.ilike.%TyC%,name.ilike.%DSport%,name.ilike.%Win Sport%',
+          news: 'category.eq.news,name.ilike.%news%,name.ilike.%notic%,name.ilike.%CNN%,name.ilike.%BBC%,name.ilike.%24 Horas%',
+          movies: 'category.eq.movies,name.ilike.%cine%,name.ilike.%movie%,name.ilike.%pelicula%,name.ilike.%film%',
+          kids: 'category.eq.kids,name.ilike.%kids%,name.ilike.%niños%,name.ilike.%junior%,name.ilike.%cartoon%,name.ilike.%disney%',
+          entertainment: 'category.eq.entertainment,name.ilike.%MTV%,name.ilike.%comedy%,name.ilike.%entrete%',
+        }
+        const filter = nameFilters[category]
+        if (filter) query = query.or(filter)
+        else query = query.eq('category', category)
+      }
       const { data } = await query.limit(500)
       const loaded = data || []
       setChannels(loaded)

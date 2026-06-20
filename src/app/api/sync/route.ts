@@ -28,8 +28,18 @@ async function loadChannelsMeta(): Promise<Map<string, ChannelMeta>> {
   return map
 }
 
-function normalizeCategory(cats: string[]): string {
-  if (!cats || cats.length === 0) return 'other'
+function normalizeCategory(cats: string[], name = ''): string {
+  const n = name.toLowerCase()
+  // Name-based fallback (catches channels not in the API)
+  if (cats.length === 0) {
+    if (/sport|deport|futbol|fútbol|bein|fox sport|espn|tyc|win sport|dsport|golazos/i.test(n)) return 'sports'
+    if (/news|notic|canal 24|cnn|bbc|rtve|telediario|ntn|24h/i.test(n)) return 'news'
+    if (/kids|niños|junior|cartoon|disney|nickelodeon|infantil/i.test(n)) return 'kids'
+    if (/movie|pelicul|cine|film|cinema/i.test(n)) return 'movies'
+    if (/music|mtv|vevo|hits|música/i.test(n)) return 'music'
+    if (/doc|national geographic|history|discovery/i.test(n)) return 'documentary'
+    return 'entertainment'
+  }
   const c = cats[0].toLowerCase()
   if (c === 'sports') return 'sports'
   if (c === 'news') return 'news'
@@ -60,7 +70,7 @@ function parseM3U(text: string, defaultCountry: string, meta: Map<string, Channe
         tvg_id: current.channelId,
         logo: info?.logo || null,
         country: info?.country || defaultCountry,
-        category: normalizeCategory(info?.categories || []),
+        category: normalizeCategory(info?.categories || [], current.name),
       })
       current = null
     }
