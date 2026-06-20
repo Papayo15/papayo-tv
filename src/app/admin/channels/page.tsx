@@ -49,6 +49,8 @@ export default function AdminChannelsPage() {
   const [addingSource, setAddingSource] = useState(false)
   const [quickUrl, setQuickUrl] = useState('')
   const [quickSyncing, setQuickSyncing] = useState(false)
+  const [bulkUrls, setBulkUrls] = useState('')
+  const [bulkSyncing, setBulkSyncing] = useState(false)
 
   useEffect(() => {
     loadChannels()
@@ -191,6 +193,35 @@ export default function AdminChannelsPage() {
     }
   }
 
+  async function bulkSync() {
+    const urls = bulkUrls
+      .split('\n')
+      .map(l => l.replace(/^[^h]+(?=https?:\/\/)/, '').trim())
+      .filter(l => l.startsWith('http'))
+    if (!urls.length) return
+    setBulkSyncing(true)
+    let total = 0
+    let ok = 0
+    for (const url of urls) {
+      setSyncResult(`⏳ [${ok + 1}/${urls.length}] Importando ${url.slice(0, 50)}...`)
+      try {
+        const res = await fetch('/api/sync-url', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ url }),
+        })
+        const data = await res.json()
+        if (!data.error) { total += data.inserted || 0; ok++ }
+        else setSyncResult(`⚠️ ${url.slice(0, 40)}: ${data.error}`)
+      } catch { /* skip */ }
+      await new Promise(r => setTimeout(r, 500))
+    }
+    setSyncResult(`✅ ${ok}/${urls.length} listas importadas — ${total} canales totales`)
+    setBulkSyncing(false)
+    setBulkUrls('')
+    await loadChannels()
+  }
+
   async function addSource() {
     if (!newUrl.trim()) return
     setAddingSource(true)
@@ -318,6 +349,26 @@ export default function AdminChannelsPage() {
           </Button>
         </div>
         <p className="text-zinc-600 text-xs">Pega cualquier URL de lista M3U y se importan los canales de inmediato</p>
+
+        {/* Bulk import */}
+        <div className="pt-2 border-t border-zinc-800 space-y-2">
+          <p className="text-zinc-400 text-xs font-semibold">IMPORTAR VARIAS LISTAS (una URL por línea)</p>
+          <textarea
+            value={bulkUrls}
+            onChange={e => setBulkUrls(e.target.value)}
+            placeholder={"https://pastebin.com/raw/ABC123\nhttps://example.com/lista.m3u\nhttp://bit.ly/otraLista"}
+            rows={4}
+            className="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2 text-white text-xs font-mono resize-none focus:outline-none focus:border-blue-600"
+          />
+          <Button
+            onClick={bulkSync}
+            disabled={bulkSyncing || !bulkUrls.trim()}
+            className="bg-purple-700 hover:bg-purple-600 text-white gap-2"
+          >
+            <RefreshCw className={`h-4 w-4 ${bulkSyncing ? 'animate-spin' : ''}`} />
+            {bulkSyncing ? 'Importando listas...' : 'Importar todas'}
+          </Button>
+        </div>
       </div>
 
       {/* Tabs */}
