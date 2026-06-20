@@ -47,6 +47,8 @@ export default function AdminChannelsPage() {
   const [newUrl, setNewUrl] = useState('')
   const [newName, setNewName] = useState('')
   const [addingSource, setAddingSource] = useState(false)
+  const [quickUrl, setQuickUrl] = useState('')
+  const [quickSyncing, setQuickSyncing] = useState(false)
 
   useEffect(() => {
     loadChannels()
@@ -164,6 +166,31 @@ export default function AdminChannelsPage() {
     setSources(prev => prev.filter(s => s.id !== id))
   }
 
+  async function quickSyncUrl() {
+    if (!quickUrl.trim()) return
+    setQuickSyncing(true)
+    setSyncResult('⏳ Descargando y sincronizando lista...')
+    try {
+      const res = await fetch('/api/sync-url', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ url: quickUrl.trim() }),
+      })
+      const data = await res.json()
+      if (data.error) {
+        setSyncResult(`❌ ${data.error}`)
+      } else {
+        setSyncResult(`✅ Lista importada — ${data.inserted} canales agregados (${data.parsed} en la lista)`)
+        setQuickUrl('')
+        await loadChannels()
+      }
+    } catch (e) {
+      setSyncResult(`❌ Error: ${String(e)}`)
+    } finally {
+      setQuickSyncing(false)
+    }
+  }
+
   async function addSource() {
     if (!newUrl.trim()) return
     setAddingSource(true)
@@ -267,6 +294,30 @@ export default function AdminChannelsPage() {
             </div>
           ))}
         </div>
+      </div>
+
+      {/* Quick URL sync — no depende de playlist_sources */}
+      <div className="rounded-xl bg-zinc-900 border border-blue-800/40 p-4 space-y-2">
+        <p className="text-blue-400 text-xs font-semibold flex items-center gap-2">
+          <Rss className="h-3.5 w-3.5" />IMPORTAR LISTA M3U AHORA
+        </p>
+        <div className="flex gap-2 flex-wrap">
+          <Input
+            placeholder="https://pastebin.com/raw/... o cualquier URL .m3u"
+            value={quickUrl}
+            onChange={e => setQuickUrl(e.target.value)}
+            className="bg-zinc-800 border-zinc-700 text-white flex-1 min-w-0"
+          />
+          <Button
+            onClick={quickSyncUrl}
+            disabled={quickSyncing || !quickUrl.trim()}
+            className="bg-blue-600 hover:bg-blue-700 text-white shrink-0 gap-2"
+          >
+            <RefreshCw className={`h-4 w-4 ${quickSyncing ? 'animate-spin' : ''}`} />
+            {quickSyncing ? 'Importando...' : 'Importar ya'}
+          </Button>
+        </div>
+        <p className="text-zinc-600 text-xs">Pega cualquier URL de lista M3U y se importan los canales de inmediato</p>
       </div>
 
       {/* Tabs */}
