@@ -205,7 +205,7 @@ export function VideoPlayer({
         </div>
       )}
 
-      {state === 'blocked' && (
+      {state === 'blocked' && !onError && (
         <div className="absolute inset-0 flex flex-col items-center justify-center gap-4 bg-zinc-950 p-4">
           <Shield className="h-10 w-10 text-orange-500" />
           <div className="text-center">
