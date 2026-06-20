@@ -3,11 +3,11 @@ import { createClient } from '@supabase/supabase-js'
 
 export const maxDuration = 30
 
-// Patterns → correct category. Run after every sync to fix mis-tagged channels.
 const RULES: { pattern: string; category: string }[] = [
-  // Sports — most important
+  // ── SPORTS ────────────────────────────────────────────────────────────────
   { pattern: 'ESPN', category: 'sports' },
   { pattern: 'Fox Sport', category: 'sports' },
+  { pattern: 'Fox Dep', category: 'sports' },
   { pattern: 'FS1', category: 'sports' },
   { pattern: 'FS2', category: 'sports' },
   { pattern: 'NBC Sport', category: 'sports' },
@@ -24,10 +24,14 @@ const RULES: { pattern: string; category: string }[] = [
   { pattern: 'DirecTV Sport', category: 'sports' },
   { pattern: 'TUDN', category: 'sports' },
   { pattern: 'Teledeporte', category: 'sports' },
-  { pattern: 'Movistar+', category: 'sports' },
+  { pattern: 'Movistar Dep', category: 'sports' },
   { pattern: 'Canal+ Sport', category: 'sports' },
   { pattern: 'Sport1', category: 'sports' },
+  { pattern: 'Sport 1', category: 'sports' },
+  { pattern: 'Sport 2', category: 'sports' },
+  { pattern: 'Sport 3', category: 'sports' },
   { pattern: 'Supersport', category: 'sports' },
+  { pattern: 'SuperSport', category: 'sports' },
   { pattern: 'Polsat Sport', category: 'sports' },
   { pattern: 'Eleven Sport', category: 'sports' },
   { pattern: 'Arena Sport', category: 'sports' },
@@ -35,6 +39,7 @@ const RULES: { pattern: string; category: string }[] = [
   { pattern: 'Optus Sport', category: 'sports' },
   { pattern: 'Sportsnet', category: 'sports' },
   { pattern: 'TSN', category: 'sports' },
+  { pattern: 'RDS', category: 'sports' },
   { pattern: 'Golf Channel', category: 'sports' },
   { pattern: 'Golf TV', category: 'sports' },
   { pattern: 'Tennis Channel', category: 'sports' },
@@ -49,23 +54,115 @@ const RULES: { pattern: string; category: string }[] = [
   { pattern: 'NASCAR', category: 'sports' },
   { pattern: 'RedZone', category: 'sports' },
   { pattern: 'Flow Sport', category: 'sports' },
-  { pattern: 'Fox Dep', category: 'sports' },
-  { pattern: 'deporte', category: 'sports' },
-  { pattern: 'Deporte', category: 'sports' },
-  // News
+  { pattern: 'Match TV', category: 'sports' },
+  { pattern: 'Viasat Sport', category: 'sports' },
+  { pattern: 'Nova Sport', category: 'sports' },
+  { pattern: 'Max Sport', category: 'sports' },
+  { pattern: 'Sport Club', category: 'sports' },
+  { pattern: 'Sport News', category: 'sports' },
+  { pattern: 'Startimes Sport', category: 'sports' },
+  { pattern: 'Canal Deporte', category: 'sports' },
+  { pattern: 'TV Deporte', category: 'sports' },
+  { pattern: 'Racing', category: 'sports' },
+  // ── DOCUMENTARY / CULTURE ────────────────────────────────────────────────
+  { pattern: 'National Geographic', category: 'documentary' },
+  { pattern: 'Nat Geo', category: 'documentary' },
+  { pattern: 'NatGeo', category: 'documentary' },
+  { pattern: 'Discovery', category: 'documentary' },
+  { pattern: 'History Channel', category: 'documentary' },
+  { pattern: 'History Ch', category: 'documentary' },
+  { pattern: 'History HD', category: 'documentary' },
+  { pattern: 'History 2', category: 'documentary' },
+  { pattern: 'HISTORY', category: 'documentary' },
+  { pattern: 'Animal Planet', category: 'documentary' },
+  { pattern: 'Odisea', category: 'documentary' },
+  { pattern: 'Viajar', category: 'documentary' },
+  { pattern: 'Viajes', category: 'documentary' },
+  { pattern: 'Viaje', category: 'documentary' },
+  { pattern: 'Food Network', category: 'documentary' },
+  { pattern: 'Cooking Channel', category: 'documentary' },
+  { pattern: 'Travel Channel', category: 'documentary' },
+  { pattern: 'Planet', category: 'documentary' },
+  { pattern: 'Ciencia', category: 'documentary' },
+  { pattern: 'Science Channel', category: 'documentary' },
+  { pattern: 'Science', category: 'documentary' },
+  { pattern: 'Investigación', category: 'documentary' },
+  { pattern: 'Investigation', category: 'documentary' },
+  { pattern: 'Crime', category: 'documentary' },
+  { pattern: 'True Crime', category: 'documentary' },
+  { pattern: 'BBC Earth', category: 'documentary' },
+  { pattern: 'BBC Knowledge', category: 'documentary' },
+  { pattern: 'Canal Historia', category: 'documentary' },
+  { pattern: 'Canal Cultura', category: 'documentary' },
+  { pattern: 'Cultura', category: 'documentary' },
+  { pattern: 'Smithsonian', category: 'documentary' },
+  { pattern: 'Nat Wild', category: 'documentary' },
+  { pattern: 'Wild', category: 'documentary' },
+  { pattern: 'Nature', category: 'documentary' },
+  { pattern: 'Explorer', category: 'documentary' },
+  { pattern: 'Explore', category: 'documentary' },
+  { pattern: 'DMAX', category: 'documentary' },
+  { pattern: 'DMax', category: 'documentary' },
+  { pattern: 'TLC', category: 'documentary' },
+  { pattern: 'A&E', category: 'documentary' },
+  { pattern: 'Lifetime', category: 'documentary' },
+  { pattern: 'Biogr', category: 'documentary' },
+  { pattern: 'Docum', category: 'documentary' },
+  // ── NEWS ──────────────────────────────────────────────────────────────────
   { pattern: 'CNN', category: 'news' },
   { pattern: 'BBC News', category: 'news' },
+  { pattern: 'BBC World', category: 'news' },
   { pattern: 'France 24', category: 'news' },
   { pattern: 'Al Jazeera', category: 'news' },
   { pattern: 'Euronews', category: 'news' },
   { pattern: 'Fox News', category: 'news' },
   { pattern: 'MSNBC', category: 'news' },
-  // Kids
+  { pattern: 'Sky News', category: 'news' },
+  { pattern: 'DW News', category: 'news' },
+  { pattern: 'RT News', category: 'news' },
+  { pattern: 'TeleSUR', category: 'news' },
+  { pattern: 'NTN24', category: 'news' },
+  { pattern: 'CNN en Español', category: 'news' },
+  { pattern: 'Canal 24', category: 'news' },
+  { pattern: 'Noticiero', category: 'news' },
+  { pattern: 'Noticias', category: 'news' },
+  // ── KIDS ──────────────────────────────────────────────────────────────────
   { pattern: 'Disney', category: 'kids' },
   { pattern: 'Nickelodeon', category: 'kids' },
+  { pattern: 'Nick Jr', category: 'kids' },
   { pattern: 'Cartoon Network', category: 'kids' },
   { pattern: 'Discovery Kids', category: 'kids' },
   { pattern: 'Boomerang', category: 'kids' },
+  { pattern: 'Baby TV', category: 'kids' },
+  { pattern: 'Paka Paka', category: 'kids' },
+  { pattern: 'Clan TV', category: 'kids' },
+  { pattern: 'Gloob', category: 'kids' },
+  { pattern: 'Boing', category: 'kids' },
+  { pattern: 'Gulli', category: 'kids' },
+  { pattern: 'Tiji', category: 'kids' },
+  // ── MUSIC ─────────────────────────────────────────────────────────────────
+  { pattern: 'MTV', category: 'music' },
+  { pattern: 'VH1', category: 'music' },
+  { pattern: 'Vevo', category: 'music' },
+  { pattern: 'Los 40', category: 'music' },
+  { pattern: 'Los40', category: 'music' },
+  { pattern: 'Mezzo', category: 'music' },
+  { pattern: 'Stingray', category: 'music' },
+  { pattern: 'CMT', category: 'music' },
+  { pattern: 'BET Hip', category: 'music' },
+  // ── MOVIES ────────────────────────────────────────────────────────────────
+  { pattern: 'HBO', category: 'movies' },
+  { pattern: 'Cinemax', category: 'movies' },
+  { pattern: 'Showtime', category: 'movies' },
+  { pattern: 'Starz', category: 'movies' },
+  { pattern: 'TCM', category: 'movies' },
+  { pattern: 'AMC', category: 'movies' },
+  { pattern: 'FX Movie', category: 'movies' },
+  { pattern: 'Canal Cine', category: 'movies' },
+  { pattern: 'Cine Sony', category: 'movies' },
+  { pattern: 'Cinepolis', category: 'movies' },
+  { pattern: 'Hallmark', category: 'movies' },
+  { pattern: 'Paramount', category: 'movies' },
 ]
 
 export async function POST() { return run() }
@@ -78,7 +175,6 @@ async function run() {
   )
 
   let totalFixed = 0
-
   for (const rule of RULES) {
     const { count } = await supabase
       .from('channels')
@@ -86,7 +182,6 @@ async function run() {
       .ilike('name', `%${rule.pattern}%`)
       .neq('category', rule.category)
       .select('id', { count: 'exact', head: true })
-
     totalFixed += count || 0
   }
 

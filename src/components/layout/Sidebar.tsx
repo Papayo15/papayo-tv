@@ -4,7 +4,7 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import {
   Tv, Film, Clapperboard, Trophy, Star, Search,
-  Heart, Settings, LayoutDashboard, LogOut, RefreshCw, Globe,
+  Heart, Settings, LayoutDashboard, LogOut, RefreshCw, Globe, BookOpen,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { createClient } from '@/lib/supabase/client'
@@ -25,12 +25,13 @@ export function Sidebar({ isAdmin }: SidebarProps) {
   const { t, lang, setLang, languages } = useLang()
 
   const navItems = [
-    { href: '/live', label: t.live, icon: Tv },
-    { href: '/movies', label: t.movies, icon: Film },
-    { href: '/series', label: t.series, icon: Clapperboard },
-    { href: '/sports', label: t.sports, icon: Trophy },
-    { href: '/events', label: t.events, icon: Star },
-    { href: '/search', label: t.search, icon: Search },
+    { href: '/live',    label: t.live,    icon: Tv },
+    { href: '/movies',  label: t.movies,  icon: Film },
+    { href: '/series',  label: t.series,  icon: Clapperboard },
+    { href: '/sports',  label: t.sports,  icon: Trophy },
+    { href: '/docs',    label: t.documentary, icon: BookOpen },
+    { href: '/events',  label: t.events,  icon: Star },
+    { href: '/search',  label: t.search,  icon: Search },
     { href: '/favorites', label: 'Favoritos', icon: Heart },
   ]
 
