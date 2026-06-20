@@ -194,16 +194,18 @@ export default function AdminChannelsPage() {
   }
 
   async function bulkSync() {
-    const urls = bulkUrls
-      .split('\n')
-      .map(l => l.replace(/^[^h]+(?=https?:\/\/)/, '').trim())
-      .filter(l => l.startsWith('http'))
+    const urls = [...new Set(
+      bulkUrls
+        .split('\n')
+        .map(l => l.replace(/^[^h]+(?=https?:\/\/)/, '').trim())
+        .filter(l => l.startsWith('http'))
+    )]
     if (!urls.length) return
     setBulkSyncing(true)
     let total = 0
     let ok = 0
     for (const url of urls) {
-      setSyncResult(`⏳ [${ok + 1}/${urls.length}] Importando ${url.slice(0, 50)}...`)
+      setSyncResult(`⏳ [${ok + 1}/${urls.length}] Importando ${url.slice(0, 55)}...`)
       try {
         const res = await fetch('/api/sync-url', {
           method: 'POST',
@@ -211,15 +213,26 @@ export default function AdminChannelsPage() {
           body: JSON.stringify({ url }),
         })
         const data = await res.json()
-        if (!data.error) { total += data.inserted || 0; ok++ }
-        else setSyncResult(`⚠️ ${url.slice(0, 40)}: ${data.error}`)
+        if (!data.error) {
+          total += data.inserted || 0
+          ok++
+          // Also save as playlist_source for daily re-sync
+          await fetch('/api/playlist-sources', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ url, name: url.split('/').pop()?.split('?')[0] || url, service: 'custom' }),
+          })
+        } else {
+          setSyncResult(`⚠️ ${url.slice(0, 45)}: ${data.error}`)
+          await new Promise(r => setTimeout(r, 1500))
+        }
       } catch { /* skip */ }
-      await new Promise(r => setTimeout(r, 500))
+      await new Promise(r => setTimeout(r, 400))
     }
-    setSyncResult(`✅ ${ok}/${urls.length} listas importadas — ${total} canales totales`)
+    setSyncResult(`✅ ${ok}/${urls.length} listas importadas — ${total} canales (guardadas para re-sync diario)`)
     setBulkSyncing(false)
     setBulkUrls('')
-    await loadChannels()
+    await Promise.all([loadChannels(), loadSources()])
   }
 
   async function addSource() {
