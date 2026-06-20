@@ -174,7 +174,7 @@ export default function AdminChannelsPage() {
       const res = await fetch('/api/sync-url', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ url: quickUrl.trim() }),
+        body: JSON.stringify({ url: quickUrl.replace(/^[^h]+(?=https?:\/\/)/, '').trim() }),
       })
       const data = await res.json()
       if (data.error) {

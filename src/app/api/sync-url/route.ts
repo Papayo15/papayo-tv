@@ -5,8 +5,10 @@ import { parseM3U, normalizeCategory } from '@/lib/sync/channels'
 export const maxDuration = 60
 
 export async function POST(req: NextRequest) {
-  const { url } = await req.json()
-  if (!url) return NextResponse.json({ error: 'URL requerida' }, { status: 400 })
+  const body = await req.json()
+  // Strip leading junk chars (*, spaces, dashes) the user might accidentally paste
+  const url = (body.url || '').replace(/^[^h]+(?=https?:\/\/)/, '').trim()
+  if (!url || !url.startsWith('http')) return NextResponse.json({ error: 'URL requerida (debe empezar con http)' }, { status: 400 })
 
   // Fetch the M3U
   let text = ''
