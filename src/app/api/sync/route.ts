@@ -3,14 +3,27 @@ import { NextResponse } from 'next/server'
 
 const BASE = 'https://raw.githubusercontent.com/iptv-org/iptv/master/streams'
 
-const SOURCES = [
-  { url: `${BASE}/mx.m3u`, country: 'mx' },
-  { url: `${BASE}/es.m3u`, country: 'es' },
-  { url: `${BASE}/ar.m3u`, country: 'ar' },
-  { url: `${BASE}/us.m3u`, country: 'us' },
-  { url: `${BASE}/co.m3u`, country: 'co' },
-  { url: `${BASE}/cl.m3u`, country: 'cl' },
+// All available countries grouped for selective sync
+const COUNTRY_GROUPS: Record<string, string[]> = {
+  // LatAm
+  latam: ['mx', 'ar', 'co', 'cl', 'br', 'pe', 've', 'ec', 'bo', 'py', 'uy', 'cr', 'pa', 'gt', 'hn', 'sv', 'do', 'cu', 'pr'],
+  // Europe
+  europe: ['es', 'pt', 'gb', 'it', 'fr', 'de', 'nl', 'be', 'ch', 'at', 'pl', 'ro', 'tr', 'ru', 'se', 'no', 'dk', 'gr', 'cz'],
+  // North America & other
+  other: ['us', 'ca', 'au', 'jp', 'kr', 'in'],
+}
+
+// All countries flat list
+const ALL_COUNTRIES = [...new Set(Object.values(COUNTRY_GROUPS).flat())]
+
+const BASE_SOURCES = ALL_COUNTRIES.map(c => ({ url: `${BASE}/${c}.m3u`, country: c }))
+
+// Dedicated iptv-org lists
+const EXTRA_SOURCES = [
+  { url: `${BASE}/int.m3u`, country: 'int' }, // International channels
 ]
+
+const SOURCES = [...BASE_SOURCES, ...EXTRA_SOURCES]
 
 type ChannelMeta = { country: string; categories: string[]; logo: string }
 

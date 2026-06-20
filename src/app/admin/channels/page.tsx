@@ -33,20 +33,11 @@ export default function AdminChannelsPage() {
   async function triggerSync() {
     setSyncing(true)
     setSyncResult(null)
-    const countries = ['mx', 'es', 'ar', 'us', 'co', 'cl']
-    let total = 0
     try {
-      for (const country of countries) {
-        setSyncResult(`⏳ Sincronizando ${country.toUpperCase()}...`)
-        const res = await fetch('/api/sync', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ country }),
-        })
-        const data = await res.json()
-        if (data.inserted) total += data.inserted
-      }
-      setSyncResult(`✅ Listo — ${total} canales sincronizados`)
+      setSyncResult('⏳ Sincronizando todos los países (puede tardar 2-3 min)...')
+      const res = await fetch('/api/sync-all', { method: 'POST' })
+      const data = await res.json()
+      setSyncResult(`✅ Listo — ${data.channels || 0} canales de ${35}+ países`)
       await loadChannels()
     } catch (err) {
       setSyncResult(`❌ Error: ${String(err)}`)

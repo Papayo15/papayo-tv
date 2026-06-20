@@ -12,13 +12,32 @@ import { Search, Tv, CalendarDays } from 'lucide-react'
 
 const COUNTRIES = [
   { code: 'all', label: 'Todos' },
+  // LatAm
   { code: 'mx', label: '🇲🇽 México' },
-  { code: 'es', label: '🇪🇸 España' },
-  { code: 'us', label: '🇺🇸 EE.UU.' },
   { code: 'ar', label: '🇦🇷 Argentina' },
   { code: 'co', label: '🇨🇴 Colombia' },
   { code: 'br', label: '🇧🇷 Brasil' },
   { code: 'cl', label: '🇨🇱 Chile' },
+  { code: 'pe', label: '🇵🇪 Perú' },
+  { code: 've', label: '🇻🇪 Venezuela' },
+  { code: 'ec', label: '🇪🇨 Ecuador' },
+  { code: 'bo', label: '🇧🇴 Bolivia' },
+  { code: 'py', label: '🇵🇾 Paraguay' },
+  { code: 'uy', label: '🇺🇾 Uruguay' },
+  { code: 'cr', label: '🇨🇷 Costa Rica' },
+  { code: 'do', label: '🇩🇴 R. Dominicana' },
+  // Europa
+  { code: 'es', label: '🇪🇸 España' },
+  { code: 'pt', label: '🇵🇹 Portugal' },
+  { code: 'gb', label: '🇬🇧 Reino Unido' },
+  { code: 'it', label: '🇮🇹 Italia' },
+  { code: 'fr', label: '🇫🇷 Francia' },
+  { code: 'de', label: '🇩🇪 Alemania' },
+  { code: 'nl', label: '🇳🇱 Holanda' },
+  // Otros
+  { code: 'us', label: '🇺🇸 EE.UU.' },
+  { code: 'ca', label: '🇨🇦 Canadá' },
+  { code: 'int', label: '🌐 Internacional' },
 ]
 
 const CATEGORIES = [
