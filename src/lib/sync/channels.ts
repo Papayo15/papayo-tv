@@ -76,7 +76,7 @@ export function parseM3U(text: string, defaultCountry: string, meta: Map<string,
   return channels
 }
 
-export async function syncCountry(country: string, meta: Map<string, ChannelMeta>): Promise<number> {
+export async function syncCountry(country: string, meta?: Map<string, ChannelMeta>): Promise<number> {
   const supabase = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.SUPABASE_SERVICE_ROLE_KEY!
@@ -88,7 +88,8 @@ export async function syncCountry(country: string, meta: Map<string, ChannelMeta
     if (!res.ok) return 0
 
     const text = await res.text()
-    const channels = parseM3U(text, country, meta)
+    // Use empty meta if not provided — name-based categorization is the fallback
+    const channels = parseM3U(text, country, meta ?? new Map())
     if (channels.length === 0) return 0
 
     let inserted = 0

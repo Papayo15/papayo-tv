@@ -31,19 +31,32 @@ export default function AdminChannelsPage() {
   }
 
   async function triggerSync() {
+    const COUNTRIES = [
+      'mx','ar','co','cl','br','pe','ve','ec',
+      'es','pt','gb','it','fr','de','nl','be',
+      'us','ca','au','int',
+      'do','cr','uy','bo','gt','pa','hn','sv','pr','cu',
+      'at','se','no','dk','tr',
+    ]
     setSyncing(true)
     setSyncResult(null)
-    try {
-      setSyncResult('⏳ Sincronizando todos los países (puede tardar 2-3 min)...')
-      const res = await fetch('/api/sync-all', { method: 'POST' })
-      const data = await res.json()
-      setSyncResult(`✅ Listo — ${data.channels || 0} canales de ${35}+ países`)
-      await loadChannels()
-    } catch (err) {
-      setSyncResult(`❌ Error: ${String(err)}`)
-    } finally {
-      setSyncing(false)
+    let total = 0
+    for (let i = 0; i < COUNTRIES.length; i++) {
+      const country = COUNTRIES[i]
+      setSyncResult(`⏳ Sincronizando ${country.toUpperCase()} (${i + 1}/${COUNTRIES.length}) — ${total} canales hasta ahora...`)
+      try {
+        const res = await fetch('/api/sync', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ country }),
+        })
+        const data = await res.json()
+        total += data.inserted || 0
+      } catch { /* country failed, continue */ }
     }
+    setSyncResult(`✅ Listo — ${total} canales de ${COUNTRIES.length} países`)
+    setSyncing(false)
+    await loadChannels()
   }
 
   async function triggerEpgSync() {
