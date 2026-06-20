@@ -12,39 +12,63 @@ const SOURCES = [
   { url: `${BASE}/cl.m3u`, country: 'cl' },
 ]
 
-function parseM3U(text: string, defaultCountry: string) {
+type ChannelMeta = { country: string; categories: string[]; logo: string }
+
+async function loadChannelsMeta(): Promise<Map<string, ChannelMeta>> {
+  const map = new Map<string, ChannelMeta>()
+  try {
+    const res = await fetch('https://iptv-org.github.io/api/channels.json', { signal: AbortSignal.timeout(15000) })
+    const channels: Array<{ id: string; country: string; categories: string[]; logo?: string }> = await res.json()
+    for (const c of channels) {
+      map.set(c.id.toLowerCase(), { country: c.country.toLowerCase(), categories: c.categories, logo: c.logo || '' })
+    }
+  } catch {
+    // proceed without metadata
+  }
+  return map
+}
+
+function normalizeCategory(cats: string[]): string {
+  if (!cats || cats.length === 0) return 'other'
+  const c = cats[0].toLowerCase()
+  if (c === 'sports') return 'sports'
+  if (c === 'news') return 'news'
+  if (c === 'kids') return 'kids'
+  if (c === 'movies') return 'movies'
+  if (c === 'music') return 'music'
+  if (c === 'documentary') return 'documentary'
+  if (c === 'entertainment' || c === 'general') return 'entertainment'
+  return 'other'
+}
+
+function parseM3U(text: string, defaultCountry: string, meta: Map<string, ChannelMeta>) {
   const lines = text.split('\n').map(l => l.trim()).filter(Boolean)
-  const channels: Array<{ name: string; url: string; logo: string; country: string; category: string; language: string }> = []
-  let current: { name: string; url: string; logo: string; country: string; category: string; language: string } | null = null
+  const channels: Array<{ name: string; url: string; logo: string | null; country: string; category: string }> = []
+  let current: { name: string; channelId: string } | null = null
 
   for (const line of lines) {
     if (line.startsWith('#EXTINF:')) {
-      const name = line.match(/,(.+)$/)?.[1]?.trim()
-      const logo = line.match(/tvg-logo="([^"]*)"/)?.[1]
-      const country = line.match(/tvg-country="([^"]*)"/)?.[1]?.toLowerCase()
-      const group = line.match(/group-title="([^"]*)"/)?.[1] || ''
-      const lang = line.match(/tvg-language="([^"]*)"/)?.[1]
-
-      const cat = group.toLowerCase().includes('sport') || group.toLowerCase().includes('deport') ? 'sports'
-        : group.toLowerCase().includes('news') || group.toLowerCase().includes('notic') ? 'news'
-        : group.toLowerCase().includes('kid') || group.toLowerCase().includes('niño') ? 'kids'
-        : group.toLowerCase().includes('movie') || group.toLowerCase().includes('pel') ? 'movies'
-        : group.toLowerCase().includes('music') ? 'music'
-        : 'other'
-
-      current = { name: name || 'Sin nombre', url: '', logo: logo || '', country: country || defaultCountry, category: cat, language: lang || '' }
+      const name = line.match(/,(.+)$/)?.[1]?.trim() || 'Sin nombre'
+      const tvgId = line.match(/tvg-id="([^"]*)"/)?.[1] || ''
+      const channelId = tvgId.split('@')[0].toLowerCase()
+      current = { name, channelId }
     } else if (line.startsWith('http') && current) {
-      channels.push({ ...current, url: line })
+      const info = meta.get(current.channelId)
+      channels.push({
+        name: current.name,
+        url: line,
+        logo: info?.logo || null,
+        country: info?.country || defaultCountry,
+        category: normalizeCategory(info?.categories || []),
+      })
       current = null
     }
-
   }
   return channels
 }
 
 export async function POST(req: Request) {
   const { country } = await req.json().catch(() => ({ country: 'mx' }))
-
   const source = SOURCES.find(s => s.country === country) || SOURCES[0]
 
   const supabase = createClient(
@@ -52,35 +76,33 @@ export async function POST(req: Request) {
     process.env.SUPABASE_SERVICE_ROLE_KEY!
   )
 
-  try {
-    const res = await fetch(source.url, { signal: AbortSignal.timeout(25000) })
-    if (!res.ok) return NextResponse.json({ error: `Failed to fetch ${source.url}` }, { status: 500 })
+  const [meta, m3uRes] = await Promise.all([
+    loadChannelsMeta(),
+    fetch(source.url, { signal: AbortSignal.timeout(25000) }),
+  ])
 
-    const text = await res.text()
-    const channels = parseM3U(text, source.country)
+  if (!m3uRes.ok) return NextResponse.json({ error: `Failed to fetch ${source.url}` }, { status: 500 })
 
-    if (channels.length === 0) return NextResponse.json({ inserted: 0 })
+  const text = await m3uRes.text()
+  const channels = parseM3U(text, source.country, meta)
 
-    // Insert in batches of 100
-    let inserted = 0
-    for (let i = 0; i < channels.length; i += 100) {
-      const batch = channels.slice(i, i + 100).map(c => ({
-        name: c.name,
-        url: c.url,
-        logo: c.logo || null,
-        country: c.country,
-        category: c.category,
-        language: c.language || null,
-        is_active: true,
-        last_synced_at: new Date().toISOString(),
-      }))
+  if (channels.length === 0) return NextResponse.json({ inserted: 0 })
 
-      const { error } = await supabase.from('channels').upsert(batch, { onConflict: 'url' })
-      if (!error) inserted += batch.length
-    }
-
-    return NextResponse.json({ success: true, inserted, country: source.country })
-  } catch (err) {
-    return NextResponse.json({ error: String(err) }, { status: 500 })
+  let inserted = 0
+  for (let i = 0; i < channels.length; i += 100) {
+    const batch = channels.slice(i, i + 100).map(c => ({
+      name: c.name,
+      url: c.url,
+      logo: c.logo,
+      country: c.country,
+      category: c.category,
+      language: null,
+      is_active: true,
+      last_synced_at: new Date().toISOString(),
+    }))
+    const { error } = await supabase.from('channels').upsert(batch, { onConflict: 'url' })
+    if (!error) inserted += batch.length
   }
+
+  return NextResponse.json({ success: true, inserted, country: source.country })
 }
